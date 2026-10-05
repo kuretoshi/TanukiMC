@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Bogged;
 import org.bukkit.entity.Skeleton;
@@ -32,6 +33,9 @@ public class CraftBogged extends CraftAbstractSkeleton implements Bogged, io.pap
 
     @Override
     public void setSheared(boolean flag) {
-        this.getHandle().setSheared(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setSheared(flag);
+            return null;
+        });
     }
 }

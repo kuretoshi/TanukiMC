@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import java.util.UUID;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.TamableAnimal;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.AnimalTamer;
@@ -31,7 +32,10 @@ public class CraftTameableAnimal extends CraftAnimals implements Tameable, Creat
     }
 
     public void setOwnerUUID(UUID uuid) {
-        this.getHandle().setOwnerUUID(uuid);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setOwnerUUID(uuid);
+            return null;
+        });
     }
 
     @Override
@@ -55,23 +59,29 @@ public class CraftTameableAnimal extends CraftAnimals implements Tameable, Creat
 
     @Override
     public void setOwner(AnimalTamer tamer) {
-        if (tamer != null) {
-            this.setTamed(true);
-            this.getHandle().setTargetReason(null, false);
-            this.getHandle().setTarget(null);
-            this.setOwnerUUID(tamer.getUniqueId());
-        } else {
-            this.setTamed(false);
-            this.setOwnerUUID(null);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (tamer != null) {
+                this.setTamed(true);
+                this.getHandle().setTargetReason(null, false);
+                this.getHandle().setTarget(null);
+                this.setOwnerUUID(tamer.getUniqueId());
+            } else {
+                this.setTamed(false);
+                this.setOwnerUUID(null);
+            }
+            return null;
+        });
     }
 
     @Override
     public void setTamed(boolean tame) {
-        this.getHandle().setTame(tame, true);
-        if (!tame) {
-            this.setOwnerUUID(null);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setTame(tame, true);
+            if (!tame) {
+                this.setOwnerUUID(null);
+            }
+            return null;
+        });
     }
 
     public boolean isSitting() {
@@ -79,8 +89,11 @@ public class CraftTameableAnimal extends CraftAnimals implements Tameable, Creat
     }
 
     public void setSitting(boolean sitting) {
-        this.getHandle().setInSittingPose(sitting);
-        this.getHandle().setOrderedToSit(sitting);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setInSittingPose(sitting);
+            this.getHandle().setOrderedToSit(sitting);
+            return null;
+        });
     }
 
     @Override

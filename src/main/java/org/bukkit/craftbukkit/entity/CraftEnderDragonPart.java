@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.EnderDragon;
@@ -28,17 +29,26 @@ public class CraftEnderDragonPart extends CraftComplexPart implements EnderDrago
 
     @Override
     public void damage(double amount, DamageSource damageSource) {
-        this.getParent().damage(amount, damageSource);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().damage(amount, damageSource);
+            return null;
+        });
     }
 
     @Override
     public void damage(double amount) {
-        this.getParent().damage(amount);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().damage(amount);
+            return null;
+        });
     }
 
     @Override
     public void damage(double amount, Entity source) {
-        this.getParent().damage(amount, source);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().damage(amount, source);
+            return null;
+        });
     }
 
     @Override
@@ -48,13 +58,19 @@ public class CraftEnderDragonPart extends CraftComplexPart implements EnderDrago
 
     @Override
     public void setHealth(double health) {
-        this.getParent().setHealth(health);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().setHealth(health);
+            return null;
+        });
     }
 
     // Paper start - entity heal API
     @Override
     public void heal(final double amount, final org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason reason) {
-        this.getParent().heal(amount, reason);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().heal(amount, reason);
+            return null;
+        });
     }
     // Paper end - entity heal API
 
@@ -65,7 +81,10 @@ public class CraftEnderDragonPart extends CraftComplexPart implements EnderDrago
 
     @Override
     public void setAbsorptionAmount(double amount) {
-        this.getParent().setAbsorptionAmount(amount);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().setAbsorptionAmount(amount);
+            return null;
+        });
     }
 
     @Override
@@ -75,11 +94,17 @@ public class CraftEnderDragonPart extends CraftComplexPart implements EnderDrago
 
     @Override
     public void setMaxHealth(double health) {
-        this.getParent().setMaxHealth(health);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().setMaxHealth(health);
+            return null;
+        });
     }
 
     @Override
     public void resetMaxHealth() {
-        this.getParent().resetMaxHealth();
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().resetMaxHealth();
+            return null;
+        });
     }
 }

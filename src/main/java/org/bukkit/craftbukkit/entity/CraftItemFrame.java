@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.decoration.HangingEntity;
 import net.minecraft.world.level.block.Blocks;
@@ -18,21 +19,23 @@ public class CraftItemFrame extends CraftHanging implements ItemFrame {
 
     @Override
     public boolean setFacingDirection(BlockFace face, boolean force) {
-        HangingEntity hanging = this.getHandle();
-        Direction oldDir = hanging.getDirection();
-        Direction newDir = CraftBlock.blockFaceToNotch(face);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            HangingEntity hanging = this.getHandle();
+            Direction oldDir = hanging.getDirection();
+            Direction newDir = CraftBlock.blockFaceToNotch(face);
 
-        Preconditions.checkArgument(newDir != null, "%s is not a valid facing direction", face);
+            Preconditions.checkArgument(newDir != null, "%s is not a valid facing direction", face);
 
-        this.getHandle().setDirection(newDir);
-        if (!force && !this.getHandle().generation && !hanging.survives()) {
-            hanging.setDirection(oldDir);
-            return false;
-        }
+            this.getHandle().setDirection(newDir);
+            if (!force && !this.getHandle().generation && !hanging.survives()) {
+                hanging.setDirection(oldDir);
+                return false;
+            }
 
-        this.update();
+            this.update();
 
-        return true;
+            return true;
+        });
     }
 
     @Override
@@ -58,8 +61,11 @@ public class CraftItemFrame extends CraftHanging implements ItemFrame {
 
     @Override
     public void setItem(org.bukkit.inventory.ItemStack item, boolean playSound) {
-        // only updated redstone and play sound when it is not in generation
-        this.getHandle().setItem(CraftItemStack.asNMSCopy(item), !this.getHandle().generation, !this.getHandle().generation && playSound);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            // only updated redstone and play sound when it is not in generation
+            this.getHandle().setItem(CraftItemStack.asNMSCopy(item), !this.getHandle().generation, !this.getHandle().generation && playSound);
+            return null;
+        });
     }
 
     @Override
@@ -74,8 +80,11 @@ public class CraftItemFrame extends CraftHanging implements ItemFrame {
 
     @Override
     public void setItemDropChance(float chance) {
-        Preconditions.checkArgument(0.0 <= chance && chance <= 1.0, "Chance (%s) outside range [0, 1]", chance);
-        this.getHandle().dropChance = chance;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(0.0 <= chance && chance <= 1.0, "Chance (%s) outside range [0, 1]", chance);
+            this.getHandle().dropChance = chance;
+            return null;
+        });
     }
 
     @Override
@@ -109,8 +118,11 @@ public class CraftItemFrame extends CraftHanging implements ItemFrame {
 
     @Override
     public void setRotation(Rotation rotation) {
-        Preconditions.checkArgument(rotation != null, "Rotation cannot be null");
-        this.getHandle().setRotation(CraftItemFrame.toInteger(rotation));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(rotation != null, "Rotation cannot be null");
+            this.getHandle().setRotation(CraftItemFrame.toInteger(rotation));
+            return null;
+        });
     }
 
     static int toInteger(Rotation rotation) {
@@ -144,7 +156,10 @@ public class CraftItemFrame extends CraftHanging implements ItemFrame {
 
     @Override
     public void setVisible(boolean visible) {
-        this.getHandle().setInvisible(!visible);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setInvisible(!visible);
+            return null;
+        });
     }
 
     @Override
@@ -154,7 +169,10 @@ public class CraftItemFrame extends CraftHanging implements ItemFrame {
 
     @Override
     public void setFixed(boolean fixed) {
-        this.getHandle().fixed = fixed;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().fixed = fixed;
+            return null;
+        });
     }
 
     @Override

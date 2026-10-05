@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.BlockPos;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftServer;
@@ -27,7 +28,10 @@ public class CraftVex extends CraftMonster implements Vex {
 
     @Override
     public void setSummoner(org.bukkit.entity.Mob summoner) {
-        getHandle().setOwner(summoner == null ? null : ((CraftMob) summoner).getHandle());
+        ThreadedServer.withWorldMutationLock(() -> {
+            getHandle().setOwner(summoner == null ? null : ((CraftMob) summoner).getHandle());
+            return null;
+        });
     }
 
     @Override
@@ -37,7 +41,10 @@ public class CraftVex extends CraftMonster implements Vex {
 
     @Override
     public void setLimitedLifetime(boolean hasLimitedLifetime) {
-        this.getHandle().hasLimitedLife = hasLimitedLifetime;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().hasLimitedLife = hasLimitedLifetime;
+            return null;
+        });
     }
 
     @Override
@@ -47,7 +54,10 @@ public class CraftVex extends CraftMonster implements Vex {
 
     @Override
     public void setLimitedLifetimeTicks(int ticks) {
-        this.getHandle().limitedLifeTicks = ticks;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().limitedLifeTicks = ticks;
+            return null;
+        });
     }
     // Paper end
 
@@ -63,7 +73,10 @@ public class CraftVex extends CraftMonster implements Vex {
 
     @Override
     public void setCharging(boolean charging) {
-        this.getHandle().setIsCharging(charging);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setIsCharging(charging);
+            return null;
+        });
     }
 
     @Override
@@ -74,12 +87,15 @@ public class CraftVex extends CraftMonster implements Vex {
 
     @Override
     public void setBound(Location location) {
-        if (location == null) {
-            this.getHandle().setBoundOrigin(null);
-        } else {
-            Preconditions.checkArgument(this.getWorld().equals(location.getWorld()), "The bound world cannot be different to the entity's world.");
-            this.getHandle().setBoundOrigin(CraftLocation.toBlockPosition(location));
-        }
+        ThreadedServer.withWorldMutationLock(() -> {
+            if (location == null) {
+                this.getHandle().setBoundOrigin(null);
+            } else {
+                Preconditions.checkArgument(this.getWorld().equals(location.getWorld()), "The bound world cannot be different to the entity's world.");
+                this.getHandle().setBoundOrigin(CraftLocation.toBlockPosition(location));
+            }
+            return null;
+        });
     }
 
     @Override
@@ -89,10 +105,13 @@ public class CraftVex extends CraftMonster implements Vex {
 
     @Override
     public void setLifeTicks(int lifeTicks) {
-        this.getHandle().setLimitedLife(lifeTicks);
-        if (lifeTicks < 0) {
-            this.getHandle().hasLimitedLife = false;
-        }
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setLimitedLife(lifeTicks);
+            if (lifeTicks < 0) {
+                this.getHandle().hasLimitedLife = false;
+            }
+            return null;
+        });
     }
 
     @Override

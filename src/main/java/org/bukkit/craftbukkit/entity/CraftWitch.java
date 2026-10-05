@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
 import com.destroystokyo.paper.entity.CraftRangedEntity;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -34,7 +35,10 @@ public class CraftWitch extends CraftRaider implements Witch, CraftRangedEntity<
 
     @Override
     public void setPotionUseTimeLeft(int ticks) {
-        getHandle().usingTime = ticks;
+        ThreadedServer.withWorldMutationLock(() -> {
+            getHandle().usingTime = ticks;
+            return null;
+        });
     }
 
     public ItemStack getDrinkingPotion() {
@@ -43,7 +47,10 @@ public class CraftWitch extends CraftRaider implements Witch, CraftRangedEntity<
 
     public void setDrinkingPotion(ItemStack potion) {
         Preconditions.checkArgument(potion == null || potion.getType().isEmpty() || potion.getType() == Material.POTION, "must be potion, air, or null");
-        getHandle().setDrinkingPotion(CraftItemStack.asNMSCopy(potion));
+        ThreadedServer.withWorldMutationLock(() -> {
+            getHandle().setDrinkingPotion(CraftItemStack.asNMSCopy(potion));
+            return null;
+        });
     }
     // Paper end
 }

@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -36,12 +37,15 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
     // Paper start - Expand FallingBlock API
     @Override
     public void setBlockData(final BlockData blockData) {
-        Preconditions.checkArgument(blockData != null, "blockData");
-        final net.minecraft.world.level.block.state.BlockState oldState = this.getHandle().blockState, newState = ((CraftBlockData) blockData).getState();
-        this.getHandle().blockState = newState;
-        this.getHandle().blockData = null;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(blockData != null, "blockData");
+            final net.minecraft.world.level.block.state.BlockState oldState = this.getHandle().blockState, newState = ((CraftBlockData) blockData).getState();
+            this.getHandle().blockState = newState;
+            this.getHandle().blockData = null;
 
-        if (oldState != newState) this.update();
+            if (oldState != newState) this.update();
+            return null;
+        });
     }
 
     @Override
@@ -51,11 +55,14 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
 
     @Override
     public void setBlockState(final org.bukkit.block.BlockState blockState) {
-        Preconditions.checkArgument(blockState != null, "blockState");
-        // Calls #update if needed, the block data compound tag is not synced with the client and hence can be mutated after the sync with clients.
-        // The call also clears any potential old block data.
-        this.setBlockData(blockState.getBlockData());
-        if (blockState instanceof final org.bukkit.craftbukkit.block.CraftBlockEntityState<?> tileEntity) this.getHandle().blockData = tileEntity.getSnapshotNBT();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(blockState != null, "blockState");
+            // Calls #update if needed, the block data compound tag is not synced with the client and hence can be mutated after the sync with clients.
+            // The call also clears any potential old block data.
+            this.setBlockData(blockState.getBlockData());
+            if (blockState instanceof final org.bukkit.craftbukkit.block.CraftBlockEntityState<?> tileEntity) this.getHandle().blockData = tileEntity.getSnapshotNBT();
+            return null;
+        });
     }
     // Paper end - Expand FallingBlock API
 
@@ -66,7 +73,10 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
 
     @Override
     public void setDropItem(boolean drop) {
-        this.getHandle().dropItem = drop;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().dropItem = drop;
+            return null;
+        });
     }
 
     @Override
@@ -76,7 +86,10 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
 
     @Override
     public void setCancelDrop(boolean cancelDrop) {
-        this.getHandle().cancelDrop = cancelDrop;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().cancelDrop = cancelDrop;
+            return null;
+        });
     }
 
     @Override
@@ -86,15 +99,21 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
 
     @Override
     public void setHurtEntities(boolean hurtEntities) {
-        this.getHandle().hurtEntities = hurtEntities;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().hurtEntities = hurtEntities;
+            return null;
+        });
     }
 
     @Override
     public void setTicksLived(int value) {
-        super.setTicksLived(value);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            super.setTicksLived(value);
 
-        // Second field for EntityFallingBlock
-        this.getHandle().time = value;
+            // Second field for EntityFallingBlock
+            this.getHandle().time = value;
+            return null;
+        });
     }
 
     @Override
@@ -104,12 +123,15 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
 
     @Override
     public void setDamagePerBlock(float damage) {
-        Preconditions.checkArgument(damage >= 0.0, "damage must be >= 0.0, given %s", damage);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(damage >= 0.0, "damage must be >= 0.0, given %s", damage);
 
-        this.getHandle().fallDamagePerDistance = damage;
-        if (damage > 0.0) {
-            this.setHurtEntities(true);
-        }
+            this.getHandle().fallDamagePerDistance = damage;
+            if (damage > 0.0) {
+                this.setHurtEntities(true);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -119,12 +141,15 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
 
     @Override
     public void setMaxDamage(int damage) {
-        Preconditions.checkArgument(damage >= 0, "damage must be >= 0, given %s", damage);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(damage >= 0, "damage must be >= 0, given %s", damage);
 
-        this.getHandle().fallDamageMax = damage;
-        if (damage > 0) {
-            this.setHurtEntities(true);
-        }
+            this.getHandle().fallDamageMax = damage;
+            if (damage > 0) {
+                this.setHurtEntities(true);
+            }
+            return null;
+        });
     }
     // Paper start - Expand FallingBlock API
     @Override
@@ -134,7 +159,10 @@ public class CraftFallingBlock extends CraftEntity implements FallingBlock {
 
     @Override
     public void shouldAutoExpire(boolean autoExpires) {
-        this.getHandle().autoExpire = autoExpires;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().autoExpire = autoExpires;
+            return null;
+        });
     }
     // Paper end - Expand FallingBlock API
 }

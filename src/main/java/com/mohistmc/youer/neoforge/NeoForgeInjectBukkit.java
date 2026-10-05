@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.mohistmc.dynamicenum.MohistDynamEnum;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ServerAPI;
+import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -399,7 +400,7 @@ public class NeoForgeInjectBukkit {
     }
 
     public static void addEnumTreeType() {
-        for (Map.Entry<String, TreeGrower> entry : TreeGrower.getGrowers().entrySet()) {
+        for (Map.Entry<String, TreeGrower> entry : getTreeGrowers().entrySet()) {
             String name = entry.getKey();
             if (!name.contains(":")) continue;
 
@@ -409,6 +410,17 @@ public class NeoForgeInjectBukkit {
                 treeTypeByGrowerName.put(name, treeType);
                 debug("Registered forge TreeGrower {} as TreeType(Bukkit) {}", name, treeType);
             }
+        }
+    }
+
+    private static Map<String, TreeGrower> getTreeGrowers() {
+        try {
+            Field growers = TreeGrower.class.getDeclaredField("GROWERS");
+            growers.setAccessible(true);
+            return (Map<String, TreeGrower>) growers.get(null);
+        } catch (ReflectiveOperationException ex) {
+            debug("Unable to read TreeGrower registry", ex);
+            return Map.of();
         }
     }
 

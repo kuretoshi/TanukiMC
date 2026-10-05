@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.monster.ZombieVillager;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Villager;
@@ -29,7 +30,10 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void setBaby(boolean flag) {
-        this.getHandle().setBaby(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(flag);
+            return null;
+        });
     }
 
     @Override
@@ -66,12 +70,15 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void setConversionTime(int time) {
-        if (time < 0) {
-            this.getHandle().conversionTime = -1;
-            this.getHandle().getEntityData().set(net.minecraft.world.entity.monster.Zombie.DATA_DROWNED_CONVERSION_ID, false);
-        } else {
-            this.getHandle().startUnderWaterConversion(time);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (time < 0) {
+                this.getHandle().conversionTime = -1;
+                this.getHandle().getEntityData().set(net.minecraft.world.entity.monster.Zombie.DATA_DROWNED_CONVERSION_ID, false);
+            } else {
+                this.getHandle().startUnderWaterConversion(time);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -81,7 +88,10 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void setAge(int i) {
-        this.getHandle().setBaby(i < 0);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(i < 0);
+            return null;
+        });
     }
 
     @Override
@@ -96,12 +106,18 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void startDrowning(int drownedConversionTime) {
-        getHandle().startUnderWaterConversion(drownedConversionTime);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().startUnderWaterConversion(drownedConversionTime);
+            return null;
+        });
     }
 
     @Override
     public void stopDrowning() {
-        getHandle().stopDrowning();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().stopDrowning();
+            return null;
+        });
     }
 
     @Override
@@ -116,12 +132,18 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void setArmsRaised(final boolean raised) {
-        getHandle().setAggressive(raised);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setAggressive(raised);
+            return null;
+        });
     }
 
     @Override
     public void setShouldBurnInDay(boolean shouldBurnInDay) {
-        getHandle().setShouldBurnInDay(shouldBurnInDay);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setShouldBurnInDay(shouldBurnInDay);
+            return null;
+        });
     }
 
     @Override
@@ -137,12 +159,18 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void setBaby() {
-        this.getHandle().setBaby(true);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(true);
+            return null;
+        });
     }
 
     @Override
     public void setAdult() {
-        this.getHandle().setBaby(false);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(false);
+            return null;
+        });
     }
 
     @Override
@@ -166,6 +194,9 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void setCanBreakDoors(boolean flag) {
-        this.getHandle().setCanBreakDoors(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCanBreakDoors(flag);
+            return null;
+        });
     }
 }

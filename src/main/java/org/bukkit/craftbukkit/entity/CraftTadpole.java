@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.animal.frog.Tadpole;
 import org.bukkit.craftbukkit.CraftServer;
 
@@ -26,12 +27,18 @@ public class CraftTadpole extends CraftFish implements org.bukkit.entity.Tadpole
 
     @Override
     public void setAge(int age) {
-        this.getHandle().age = age;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().age = age;
+            return null;
+        });
     }
     // Paper start
     @Override
     public void setAgeLock(boolean lock) {
-        this.getHandle().ageLocked = lock;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().ageLocked = lock;
+            return null;
+        });
     }
 
     @Override

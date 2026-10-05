@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.stream.Collectors;
 import org.bukkit.TreeSpecies;
 import org.bukkit.craftbukkit.CraftServer;
@@ -20,7 +21,10 @@ public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.en
 
     @Override
     public void setWoodType(TreeSpecies species) {
-        this.getHandle().setVariant(CraftBoat.getBoatType(species));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setVariant(CraftBoat.getBoatType(species));
+            return null;
+        });
     }
 
     @Override
@@ -30,9 +34,12 @@ public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.en
 
     @Override
     public void setBoatType(Type type) {
-        Preconditions.checkArgument(type != null, "Boat.Type cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(type != null, "Boat.Type cannot be null");
 
-        this.getHandle().setVariant(CraftBoat.boatTypeToNms(type));
+            this.getHandle().setVariant(CraftBoat.boatTypeToNms(type));
+            return null;
+        });
     }
 
     @Override
@@ -42,9 +49,12 @@ public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.en
 
     @Override
     public void setMaxSpeed(double speed) {
-        if (speed >= 0D) {
-            this.getHandle().maxSpeed = speed;
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (speed >= 0D) {
+                this.getHandle().maxSpeed = speed;
+            }
+            return null;
+        });
     }
 
     @Override
@@ -54,9 +64,12 @@ public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.en
 
     @Override
     public void setOccupiedDeceleration(double speed) {
-        if (speed >= 0D) {
-            this.getHandle().occupiedDeceleration = speed;
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (speed >= 0D) {
+                this.getHandle().occupiedDeceleration = speed;
+            }
+            return null;
+        });
     }
 
     @Override
@@ -66,7 +79,10 @@ public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.en
 
     @Override
     public void setUnoccupiedDeceleration(double speed) {
-        this.getHandle().unoccupiedDeceleration = speed;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().unoccupiedDeceleration = speed;
+            return null;
+        });
     }
 
     @Override
@@ -76,7 +92,10 @@ public class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.en
 
     @Override
     public void setWorkOnLand(boolean workOnLand) {
-        this.getHandle().landBoats = workOnLand;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().landBoats = workOnLand;
+            return null;
+        });
     }
 
     // Paper start

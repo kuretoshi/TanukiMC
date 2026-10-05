@@ -1,0 +1,5 @@
+name: ThreadingPhaseProbe
+version: '1.0'
+main: test.youer.plugin.PhaseProbePlugin
+api-version: '1.21'
+folia-supported: true

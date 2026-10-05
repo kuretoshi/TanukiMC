@@ -41,7 +41,7 @@ public class ShowsCommand extends Command {
 
     public ShowsCommand(String name) {
         super(name);
-        this.description = "Youer shows commands";
+        this.description = "TanukiMC shows commands";
         this.usageMessage = "/shows [sound|entitys|blockentitys]";
         this.setPermission("youer.command.shows");
     }

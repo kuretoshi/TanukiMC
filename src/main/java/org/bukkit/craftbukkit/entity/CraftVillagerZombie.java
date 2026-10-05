@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.effect.MobEffects;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -31,8 +32,11 @@ public class CraftVillagerZombie extends CraftZombie implements ZombieVillager {
 
     @Override
     public void setVillagerProfession(Villager.Profession profession) {
-        Preconditions.checkArgument(profession != null, "Villager.Profession cannot be null");
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setProfession(CraftVillager.CraftProfession.bukkitToMinecraft(profession)));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(profession != null, "Villager.Profession cannot be null");
+            this.getHandle().setVillagerData(this.getHandle().getVillagerData().setProfession(CraftVillager.CraftProfession.bukkitToMinecraft(profession)));
+            return null;
+        });
     }
 
     @Override
@@ -42,8 +46,11 @@ public class CraftVillagerZombie extends CraftZombie implements ZombieVillager {
 
     @Override
     public void setVillagerType(Villager.Type type) {
-        Preconditions.checkArgument(type != null, "Villager.Type cannot be null");
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setType(CraftVillager.CraftType.bukkitToMinecraft(type)));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(type != null, "Villager.Type cannot be null");
+            this.getHandle().setVillagerData(this.getHandle().getVillagerData().setType(CraftVillager.CraftType.bukkitToMinecraft(type)));
+            return null;
+        });
     }
 
     @Override
@@ -66,15 +73,18 @@ public class CraftVillagerZombie extends CraftZombie implements ZombieVillager {
 
     @Override
     public void setConversionTime(int time, boolean broadcastEntityEvent) {
-        // Paper end - missing entity behaviour api - converting without entity event
-        if (time < 0) {
-            this.getHandle().villagerConversionTime = -1;
-            this.getHandle().getEntityData().set(net.minecraft.world.entity.monster.ZombieVillager.DATA_CONVERTING_ID, false);
-            this.getHandle().conversionStarter = null;
-            this.getHandle().removeEffect(MobEffects.DAMAGE_BOOST, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
-        } else {
-            this.getHandle().startConverting(null, time, broadcastEntityEvent); // Paper - missing entity behaviour api - converting without entity event
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            // Paper end - missing entity behaviour api - converting without entity event
+            if (time < 0) {
+                this.getHandle().villagerConversionTime = -1;
+                this.getHandle().getEntityData().set(net.minecraft.world.entity.monster.ZombieVillager.DATA_CONVERTING_ID, false);
+                this.getHandle().conversionStarter = null;
+                this.getHandle().removeEffect(MobEffects.DAMAGE_BOOST, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
+            } else {
+                this.getHandle().startConverting(null, time, broadcastEntityEvent); // Paper - missing entity behaviour api - converting without entity event
+            }
+            return null;
+        });
     }
 
     @Override
@@ -84,7 +94,10 @@ public class CraftVillagerZombie extends CraftZombie implements ZombieVillager {
 
     @Override
     public void setConversionPlayer(OfflinePlayer conversionPlayer) {
-        if (!this.isConverting()) return;
-        this.getHandle().conversionStarter = (conversionPlayer == null) ? null : conversionPlayer.getUniqueId();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (!this.isConverting()) return null;
+            this.getHandle().conversionStarter = (conversionPlayer == null) ? null : conversionPlayer.getUniqueId();
+            return null;
+        });
     }
 }

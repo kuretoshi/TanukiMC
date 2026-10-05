@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.destroystokyo.paper.entity.CraftRangedEntity;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventoryLlama;
@@ -28,7 +29,10 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
     public void setColor(Color color) {
         Preconditions.checkArgument(color != null, "color");
 
-        this.getHandle().setVariant(net.minecraft.world.entity.animal.horse.Llama.Variant.byId(color.ordinal()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setVariant(net.minecraft.world.entity.animal.horse.Llama.Variant.byId(color.ordinal()));
+            return null;
+        });
     }
 
     @Override
@@ -44,9 +48,12 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
     @Override
     public void setStrength(int strength) {
         Preconditions.checkArgument(1 <= strength && strength <= 5, "strength must be [1,5]");
-        if (strength == this.getStrength()) return;
-        this.getHandle().setStrengthPublic(strength);
-        this.getHandle().createInventory();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (strength == this.getStrength()) return null;
+            this.getHandle().setStrengthPublic(strength);
+            this.getHandle().createInventory();
+            return null;
+        });
     }
 
     @Override
@@ -67,12 +74,18 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
 
     @Override
     public void joinCaravan(@org.jetbrains.annotations.NotNull Llama llama) {
-        this.getHandle().joinCaravan(((CraftLlama) llama).getHandle());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().joinCaravan(((CraftLlama) llama).getHandle());
+            return null;
+        });
     }
 
     @Override
     public void leaveCaravan() {
-        this.getHandle().leaveCaravan();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().leaveCaravan();
+            return null;
+        });
     }
 
     @Override
@@ -99,7 +112,10 @@ public class CraftLlama extends CraftChestedHorse implements Llama, CraftRangedE
 
     @Override
     public void setShouldJoinCaravan(boolean shouldJoinCaravan) {
-        getHandle().shouldJoinCaravan = shouldJoinCaravan;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().shouldJoinCaravan = shouldJoinCaravan;
+            return null;
+        });
     }
     // Purpur end
 }

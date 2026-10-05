@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.animal.WolfVariant;
@@ -24,11 +25,14 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
 
     @Override
     public void setAngry(boolean angry) {
-        if (angry) {
-            this.getHandle().startPersistentAngerTimer();
-        } else {
-            this.getHandle().stopBeingAngry();
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (angry) {
+                this.getHandle().startPersistentAngerTimer();
+            } else {
+                this.getHandle().stopBeingAngry();
+            }
+            return null;
+        });
     }
 
     @Override
@@ -43,7 +47,10 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
 
     @Override
     public void setCollarColor(DyeColor color) {
-        this.getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+            return null;
+        });
     }
 
     @Override
@@ -63,7 +70,10 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
 
     @Override
     public void setInterested(boolean flag) {
-        this.getHandle().setIsInterested(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setIsInterested(flag);
+            return null;
+        });
     }
 
     @Override
@@ -73,9 +83,12 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
 
     @Override
     public void setVariant(Variant variant) {
-        Preconditions.checkArgument(variant != null, "variant");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(variant != null, "variant");
 
-        this.getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
+            this.getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
+            return null;
+        });
     }
 
     public static class CraftVariant implements Variant, Handleable<WolfVariant> {
@@ -155,7 +168,10 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
 
     @Override
     public void setRabid(boolean isRabid) {
-        getHandle().setRabid(isRabid);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setRabid(isRabid);
+            return null;
+        });
     }
     // Purpur end
 }

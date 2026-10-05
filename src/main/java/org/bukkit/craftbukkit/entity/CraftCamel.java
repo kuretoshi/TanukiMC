@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.Pose;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Camel;
@@ -33,7 +34,10 @@ public class CraftCamel extends CraftAbstractHorse implements Camel {
 
     @Override
     public void setDashing(boolean dashing) {
-        this.getHandle().setDashing(dashing);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setDashing(dashing);
+            return null;
+        });
     }
 
     @Override
@@ -43,10 +47,13 @@ public class CraftCamel extends CraftAbstractHorse implements Camel {
 
     @Override
     public void setSitting(boolean sitting) {
-        if (sitting) {
-            this.getHandle().sitDown();
-        } else {
-            this.getHandle().standUp();
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (sitting) {
+                this.getHandle().sitDown();
+            } else {
+                this.getHandle().standUp();
+            }
+            return null;
+        });
     }
 }

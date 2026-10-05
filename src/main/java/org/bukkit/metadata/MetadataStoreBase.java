@@ -66,8 +66,10 @@ public abstract class MetadataStoreBase<T> {
         String key = disambiguate(subject, metadataKey);
         Map<Plugin, MetadataValue> entry = metadataMap.get(key);
         if (entry != null) {
-            Collection<MetadataValue> values = entry.values();
-            return Collections.unmodifiableList(new ArrayList<MetadataValue>(values));
+            synchronized (entry) {
+                Collection<MetadataValue> values = entry.values();
+                return Collections.unmodifiableList(new ArrayList<MetadataValue>(values));
+            }
         } else {
             return Collections.emptyList();
         }
@@ -97,7 +99,7 @@ public abstract class MetadataStoreBase<T> {
      * @see MetadataStore#removeMetadata(Object, String,
      *     org.bukkit.plugin.Plugin)
      */
-    public void removeMetadata(@NotNull T subject, @NotNull String metadataKey, @NotNull Plugin owningPlugin) { // Paper
+    public synchronized void removeMetadata(@NotNull T subject, @NotNull String metadataKey, @NotNull Plugin owningPlugin) { // Paper
         Preconditions.checkArgument(owningPlugin != null, "Plugin cannot be null");
         String key = disambiguate(subject, metadataKey);
         Map<Plugin, MetadataValue> entry = metadataMap.get(key);
@@ -124,8 +126,10 @@ public abstract class MetadataStoreBase<T> {
     public void invalidateAll(@NotNull Plugin owningPlugin) { // Paper
         Preconditions.checkArgument(owningPlugin != null, "Plugin cannot be null");
         for (Map<Plugin, MetadataValue> values : metadataMap.values()) {
-            if (values.containsKey(owningPlugin)) {
-                values.get(owningPlugin).invalidate();
+            synchronized (values) {
+                if (values.containsKey(owningPlugin)) {
+                    values.get(owningPlugin).invalidate();
+                }
             }
         }
     }
@@ -141,11 +145,13 @@ public abstract class MetadataStoreBase<T> {
         Preconditions.checkNotNull(owningPlugin, "Plugin cannot be null");
         for (Iterator<Map<Plugin, MetadataValue>> iterator = metadataMap.values().iterator(); iterator.hasNext(); ) {
             Map<Plugin, MetadataValue> values = iterator.next();
-            if (values.containsKey(owningPlugin)) {
-                values.remove(owningPlugin);
-            }
-            if (values.isEmpty()) {
-                iterator.remove();
+            synchronized (values) {
+                if (values.containsKey(owningPlugin)) {
+                    values.remove(owningPlugin);
+                }
+                if (values.isEmpty()) {
+                    iterator.remove();
+                }
             }
         }
     }

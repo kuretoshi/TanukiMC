@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Optional;
 import java.util.UUID;
 import org.bukkit.craftbukkit.CraftServer;
@@ -32,7 +33,10 @@ public class CraftFox extends CraftAnimals implements Fox {
     public void setFoxType(Type type) {
         Preconditions.checkArgument(type != null, "type");
 
-        this.getHandle().setVariant(net.minecraft.world.entity.animal.Fox.Type.values()[type.ordinal()]);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setVariant(net.minecraft.world.entity.animal.Fox.Type.values()[type.ordinal()]);
+            return null;
+        });
     }
 
     @Override
@@ -42,7 +46,10 @@ public class CraftFox extends CraftAnimals implements Fox {
 
     @Override
     public void setCrouching(boolean crouching) {
-        this.getHandle().setIsCrouching(crouching);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setIsCrouching(crouching);
+            return null;
+        });
     }
 
     @Override
@@ -52,12 +59,18 @@ public class CraftFox extends CraftAnimals implements Fox {
 
     @Override
     public void setSitting(boolean sitting) {
-        this.getHandle().setSitting(sitting);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setSitting(sitting);
+            return null;
+        });
     }
 
     @Override
     public void setSleeping(boolean sleeping) {
-        this.getHandle().setSleeping(sleeping);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setSleeping(sleeping);
+            return null;
+        });
     }
 
     @Override
@@ -77,11 +90,14 @@ public class CraftFox extends CraftAnimals implements Fox {
 
     @Override
     public void setFirstTrustedPlayer(AnimalTamer player) {
-        if (player == null) {
-            Preconditions.checkState(this.getHandle().getEntityData().get(net.minecraft.world.entity.animal.Fox.DATA_TRUSTED_ID_1).isEmpty(), "Must remove second trusted player first");
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (player == null) {
+                Preconditions.checkState(this.getHandle().getEntityData().get(net.minecraft.world.entity.animal.Fox.DATA_TRUSTED_ID_1).isEmpty(), "Must remove second trusted player first");
+            }
 
-        this.getHandle().getEntityData().set(net.minecraft.world.entity.animal.Fox.DATA_TRUSTED_ID_0, player == null ? Optional.empty() : Optional.of(player.getUniqueId()));
+            this.getHandle().getEntityData().set(net.minecraft.world.entity.animal.Fox.DATA_TRUSTED_ID_0, player == null ? Optional.empty() : Optional.of(player.getUniqueId()));
+            return null;
+        });
     }
 
     @Override
@@ -101,11 +117,14 @@ public class CraftFox extends CraftAnimals implements Fox {
 
     @Override
     public void setSecondTrustedPlayer(AnimalTamer player) {
-        if (player != null) {
-            Preconditions.checkState(this.getHandle().getEntityData().get(net.minecraft.world.entity.animal.Fox.DATA_TRUSTED_ID_0).isPresent(), "Must add first trusted player first");
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (player != null) {
+                Preconditions.checkState(this.getHandle().getEntityData().get(net.minecraft.world.entity.animal.Fox.DATA_TRUSTED_ID_0).isPresent(), "Must add first trusted player first");
+            }
 
-        this.getHandle().getEntityData().set(net.minecraft.world.entity.animal.Fox.DATA_TRUSTED_ID_1, player == null ? Optional.empty() : Optional.of(player.getUniqueId()));
+            this.getHandle().getEntityData().set(net.minecraft.world.entity.animal.Fox.DATA_TRUSTED_ID_1, player == null ? Optional.empty() : Optional.of(player.getUniqueId()));
+            return null;
+        });
     }
 
     @Override
@@ -116,7 +135,10 @@ public class CraftFox extends CraftAnimals implements Fox {
     // Paper start - Add more fox behavior API
     @Override
     public void setInterested(boolean interested) {
-        this.getHandle().setIsInterested(interested);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setIsInterested(interested);
+            return null;
+        });
     }
 
     @Override
@@ -126,7 +148,10 @@ public class CraftFox extends CraftAnimals implements Fox {
 
     @Override
     public void setLeaping(boolean leaping) {
-        this.getHandle().setIsPouncing(leaping);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setIsPouncing(leaping);
+            return null;
+        });
     }
 
     @Override
@@ -136,7 +161,10 @@ public class CraftFox extends CraftAnimals implements Fox {
 
     @Override
     public void setDefending(boolean defending) {
-        this.getHandle().setDefending(defending);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setDefending(defending);
+            return null;
+        });
     }
 
     @Override
@@ -146,7 +174,10 @@ public class CraftFox extends CraftAnimals implements Fox {
 
     @Override
     public void setFaceplanted(boolean faceplanted) {
-        this.getHandle().setFaceplanted(faceplanted);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setFaceplanted(faceplanted);
+            return null;
+        });
     }
     // Paper end - Add more fox behavior API
 }

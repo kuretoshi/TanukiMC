@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.destroystokyo.paper.entity.CraftRangedEntity;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.animal.SnowGolem;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Snowman;
@@ -17,7 +18,10 @@ public class CraftSnowman extends CraftGolem implements Snowman, CraftRangedEnti
 
     @Override
     public void setDerp(boolean derpMode) {
-        this.getHandle().setPumpkin(!derpMode);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setPumpkin(!derpMode);
+            return null;
+        });
     }
 
     @Override
@@ -39,7 +43,10 @@ public class CraftSnowman extends CraftGolem implements Snowman, CraftRangedEnti
 
     @Override
     public void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner) {
-        getHandle().setSummoner(summoner);
+        ThreadedServer.withWorldMutationLock(() -> {
+            getHandle().setSummoner(summoner);
+            return null;
+        });
     }
     // Purpur end
 }

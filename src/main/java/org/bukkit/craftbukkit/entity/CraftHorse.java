@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.animal.horse.Markings;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventoryHorse;
@@ -31,7 +32,10 @@ public class CraftHorse extends CraftAbstractHorse implements Horse {
     @Override
     public void setColor(Color color) {
         Preconditions.checkArgument(color != null, "Color cannot be null");
-        this.getHandle().setVariantAndMarkings(net.minecraft.world.entity.animal.horse.Variant.byId(color.ordinal()), this.getHandle().getMarkings());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setVariantAndMarkings(net.minecraft.world.entity.animal.horse.Variant.byId(color.ordinal()), this.getHandle().getMarkings());
+            return null;
+        });
     }
 
     @Override
@@ -42,7 +46,10 @@ public class CraftHorse extends CraftAbstractHorse implements Horse {
     @Override
     public void setStyle(Style style) {
         Preconditions.checkArgument(style != null, "Style cannot be null");
-        this.getHandle().setVariantAndMarkings(this.getHandle().getVariant(), Markings.byId(style.ordinal()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setVariantAndMarkings(this.getHandle().getVariant(), Markings.byId(style.ordinal()));
+            return null;
+        });
     }
 
     @Override

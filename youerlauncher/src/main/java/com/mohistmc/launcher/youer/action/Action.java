@@ -127,7 +127,7 @@ public class Action {
         tasks.add(new FileCopyTask(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", true));
 
         if (mohistVer == null || mcpVer == null) {
-            System.out.println("[Youer] There is an error with the installation, the forge / mcp version is not set.");
+            System.out.println("[TanukiMC] There is an error with the installation, the forge / mcp version is not set.");
             System.exit(0);
         }
 
@@ -218,7 +218,7 @@ public class Action {
 
     protected void run(String mainClass, String... args) throws Exception {
         List<URL> classPath = installerTourls;
-        System.out.println("[Youer] Loading " + classPath);
+        System.out.println("[TanukiMC] Loading " + classPath);
         URLClassLoader loader = URLClassLoader.newInstance(classPath.toArray(new URL[0]));
         Class.forName(mainClass, true, loader).getDeclaredMethod("main", String[].class).invoke(null, new Object[]{args});
         loader.clearAssertionStatus();
@@ -276,7 +276,7 @@ public class Action {
                 } catch (IOException ignored) {
                 }
             } else {
-                System.out.println("[Youer] The file " + file.getName() + " doesn't exists in the Youer jar !");
+                System.out.println("[TanukiMC] The file " + file.getName() + " doesn't exist in the TanukiMC jar!");
                 System.exit(0);
             }
         }

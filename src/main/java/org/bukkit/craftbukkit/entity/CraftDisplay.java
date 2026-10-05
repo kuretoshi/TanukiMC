@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.Color;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Display;
@@ -31,16 +32,22 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setTransformation(Transformation transformation) {
-        Preconditions.checkArgument(transformation != null, "Transformation cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(transformation != null, "Transformation cannot be null");
 
-        this.getHandle().setTransformation(new com.mojang.math.Transformation(transformation.getTranslation(), transformation.getLeftRotation(), transformation.getScale(), transformation.getRightRotation()));
+            this.getHandle().setTransformation(new com.mojang.math.Transformation(transformation.getTranslation(), transformation.getLeftRotation(), transformation.getScale(), transformation.getRightRotation()));
+            return null;
+        });
     }
 
     @Override
     public void setTransformationMatrix(org.joml.Matrix4f transformationMatrix) {
-        Preconditions.checkArgument(transformationMatrix != null, "Transformation matrix cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(transformationMatrix != null, "Transformation matrix cannot be null");
 
-        this.getHandle().setTransformation(new com.mojang.math.Transformation(transformationMatrix));
+            this.getHandle().setTransformation(new com.mojang.math.Transformation(transformationMatrix));
+            return null;
+        });
     }
 
     @Override
@@ -50,7 +57,10 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setInterpolationDuration(int duration) {
-        this.getHandle().setTransformationInterpolationDuration(duration);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setTransformationInterpolationDuration(duration);
+            return null;
+        });
     }
 
     @Override
@@ -60,8 +70,11 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setTeleportDuration(int duration) {
-        Preconditions.checkArgument(duration >= 0 && duration <= 59, "duration (%s) cannot be lower than 0 or higher than 59", duration);
-        this.getHandle().getEntityData().set(net.minecraft.world.entity.Display.DATA_POS_ROT_INTERPOLATION_DURATION_ID, duration);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(duration >= 0 && duration <= 59, "duration (%s) cannot be lower than 0 or higher than 59", duration);
+            this.getHandle().getEntityData().set(net.minecraft.world.entity.Display.DATA_POS_ROT_INTERPOLATION_DURATION_ID, duration);
+            return null;
+        });
     }
 
     @Override
@@ -71,7 +84,10 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setViewRange(float range) {
-        this.getHandle().setViewRange(range);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setViewRange(range);
+            return null;
+        });
     }
 
     @Override
@@ -81,7 +97,10 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setShadowRadius(float radius) {
-        this.getHandle().setShadowRadius(radius);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setShadowRadius(radius);
+            return null;
+        });
     }
 
     @Override
@@ -91,7 +110,10 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setShadowStrength(float strength) {
-        this.getHandle().setShadowStrength(strength);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setShadowStrength(strength);
+            return null;
+        });
     }
 
     @Override
@@ -101,7 +123,10 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setDisplayWidth(float width) {
-        this.getHandle().setWidth(width);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setWidth(width);
+            return null;
+        });
     }
 
     @Override
@@ -111,7 +136,10 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setDisplayHeight(float height) {
-        this.getHandle().setHeight(height);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setHeight(height);
+            return null;
+        });
     }
 
     @Override
@@ -121,7 +149,10 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setInterpolationDelay(int ticks) {
-        this.getHandle().setTransformationInterpolationDelay(ticks);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setTransformationInterpolationDelay(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -131,9 +162,12 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setBillboard(Billboard billboard) {
-        Preconditions.checkArgument(billboard != null, "Billboard cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(billboard != null, "Billboard cannot be null");
 
-        this.getHandle().setBillboardConstraints(net.minecraft.world.entity.Display.BillboardConstraints.valueOf(billboard.name()));
+            this.getHandle().setBillboardConstraints(net.minecraft.world.entity.Display.BillboardConstraints.valueOf(billboard.name()));
+            return null;
+        });
     }
 
     @Override
@@ -145,11 +179,14 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setGlowColorOverride(Color color) {
-        if (color == null) {
-            this.getHandle().setGlowColorOverride(-1);
-        } else {
-            this.getHandle().setGlowColorOverride(color.asARGB());
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (color == null) {
+                this.getHandle().setGlowColorOverride(-1);
+            } else {
+                this.getHandle().setGlowColorOverride(color.asARGB());
+            }
+            return null;
+        });
     }
 
     @Override
@@ -161,10 +198,13 @@ public class CraftDisplay extends CraftEntity implements Display {
 
     @Override
     public void setBrightness(Brightness brightness) {
-        if (brightness != null) {
-            this.getHandle().setBrightnessOverride(new net.minecraft.util.Brightness(brightness.getBlockLight(), brightness.getSkyLight()));
-        } else {
-            this.getHandle().setBrightnessOverride(null);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (brightness != null) {
+                this.getHandle().setBrightnessOverride(new net.minecraft.util.Brightness(brightness.getBlockLight(), brightness.getSkyLight()));
+            } else {
+                this.getHandle().setBrightnessOverride(null);
+            }
+            return null;
+        });
     }
 }

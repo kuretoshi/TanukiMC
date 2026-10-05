@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.BlockPos;
 import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.CraftServer;
@@ -30,8 +31,11 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public void setDamage(double damage) {
-        Preconditions.checkArgument(damage >= 0, "Damage value (%s) must be positive", damage);
-        this.getHandle().setBaseDamage(damage);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(damage >= 0, "Damage value (%s) must be positive", damage);
+            this.getHandle().setBaseDamage(damage);
+            return null;
+        });
     }
 
     @Override
@@ -41,9 +45,12 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public void setPierceLevel(int pierceLevel) {
-        Preconditions.checkArgument(0 <= pierceLevel && pierceLevel <= Byte.MAX_VALUE, "Pierce level (%s) out of range, expected 0 < level < 127", pierceLevel);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(0 <= pierceLevel && pierceLevel <= Byte.MAX_VALUE, "Pierce level (%s) out of range, expected 0 < level < 127", pierceLevel);
 
-        this.getHandle().setPierceLevel((byte) pierceLevel);
+            this.getHandle().setPierceLevel((byte) pierceLevel);
+            return null;
+        });
     }
 
     @Override
@@ -53,7 +60,10 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public void setCritical(boolean critical) {
-        this.getHandle().setCritArrow(critical);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCritArrow(critical);
+            return null;
+        });
     }
 
     // Paper - moved to AbstractProjectile
@@ -80,16 +90,22 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public void setPickupStatus(PickupStatus status) {
-        Preconditions.checkArgument(status != null, "PickupStatus cannot be null");
-        this.getHandle().pickup = net.minecraft.world.entity.projectile.AbstractArrow.Pickup.byOrdinal(status.ordinal());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(status != null, "PickupStatus cannot be null");
+            this.getHandle().pickup = net.minecraft.world.entity.projectile.AbstractArrow.Pickup.byOrdinal(status.ordinal());
+            return null;
+        });
     }
 
     @Override
     public void setTicksLived(int value) {
-        super.setTicksLived(value);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            super.setTicksLived(value);
 
-        // Second field for EntityArrow
-        this.getHandle().life = value;
+            // Second field for EntityArrow
+            this.getHandle().life = value;
+            return null;
+        });
     }
 
     @Override
@@ -108,9 +124,12 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public void setItem(ItemStack item) {
-        Preconditions.checkArgument(item != null, "ItemStack cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(item != null, "ItemStack cannot be null");
 
-        this.getHandle().pickupItemStack = CraftItemStack.asNMSCopy(item);
+            this.getHandle().pickupItemStack = CraftItemStack.asNMSCopy(item);
+            return null;
+        });
     }
 
     @Override
@@ -121,9 +140,12 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public void setWeapon(ItemStack item) {
-        Preconditions.checkArgument(item != null, "ItemStack cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(item != null, "ItemStack cannot be null");
 
-        getHandle().firedFromWeapon = CraftItemStack.asNMSCopy(item);
+            getHandle().firedFromWeapon = CraftItemStack.asNMSCopy(item);
+            return null;
+        });
     }
 
     @Override
@@ -144,13 +166,19 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public void setItemStack(final ItemStack stack) {
-        Preconditions.checkArgument(stack != null, "ItemStack cannot be null");
-        this.getHandle().setPickupItemStack(CraftItemStack.asNMSCopy(stack));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(stack != null, "ItemStack cannot be null");
+            this.getHandle().setPickupItemStack(CraftItemStack.asNMSCopy(stack));
+            return null;
+        });
     }
 
     @Override
     public void setLifetimeTicks(int ticks) {
-        this.getHandle().life = ticks;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().life = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -165,19 +193,25 @@ public class CraftAbstractArrow extends AbstractProjectile implements AbstractAr
 
     @Override
     public void setHitSound(org.bukkit.Sound sound) {
-        this.getHandle().setSoundEvent(org.bukkit.craftbukkit.CraftSound.bukkitToMinecraft(sound));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setSoundEvent(org.bukkit.craftbukkit.CraftSound.bukkitToMinecraft(sound));
+            return null;
+        });
     }
     // Paper end
 
     // Paper start - Fix PickupStatus getting reset - Copy of CraftProjectile#setShooter, calling setOwner(Entity,boolean)
     @Override
     public void setShooter(org.bukkit.projectiles.ProjectileSource shooter, boolean resetPickupStatus) {
-        if (shooter instanceof CraftEntity craftEntity) {
-            this.getHandle().setOwner(craftEntity.getHandle(), resetPickupStatus);
-        } else {
-            this.getHandle().setOwner(null, resetPickupStatus);
-        }
-        this.getHandle().projectileSource = shooter;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (shooter instanceof CraftEntity craftEntity) {
+                this.getHandle().setOwner(craftEntity.getHandle(), resetPickupStatus);
+            } else {
+                this.getHandle().setOwner(null, resetPickupStatus);
+            }
+            this.getHandle().projectileSource = shooter;
+            return null;
+        });
     }
     // Paper end - Fix PickupStatus getting reset
 }

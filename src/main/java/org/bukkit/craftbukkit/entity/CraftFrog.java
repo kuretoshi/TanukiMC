@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Locale;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -36,11 +37,14 @@ public class CraftFrog extends CraftAnimals implements org.bukkit.entity.Frog {
 
     @Override
     public void setTongueTarget(Entity target) {
-        if (target == null) {
-            this.getHandle().eraseTongueTarget();
-        } else {
-            this.getHandle().setTongueTarget(((CraftEntity) target).getHandle());
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (target == null) {
+                this.getHandle().eraseTongueTarget();
+            } else {
+                this.getHandle().setTongueTarget(((CraftEntity) target).getHandle());
+            }
+            return null;
+        });
     }
 
     @Override
@@ -52,7 +56,10 @@ public class CraftFrog extends CraftAnimals implements org.bukkit.entity.Frog {
     public void setVariant(Variant variant) {
         Preconditions.checkArgument(variant != null, "variant");
 
-        this.getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
+            return null;
+        });
     }
 
     public static class CraftVariant implements Variant, Handleable<FrogVariant> {

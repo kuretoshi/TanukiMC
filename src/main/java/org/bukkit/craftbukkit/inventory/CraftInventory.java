@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.inventory;
 import com.google.common.base.Preconditions;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.neoforge.compat.SableCompat;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -51,8 +52,10 @@ public class CraftInventory implements Inventory {
 
     @Override
     public ItemStack getItem(int index) {
-        net.minecraft.world.item.ItemStack item = this.getInventory().getItem(index);
-        return item.isEmpty() ? null : CraftItemStack.asCraftMirror(item);
+        return ThreadedServer.withWorldMutationLock(() -> {
+            net.minecraft.world.item.ItemStack item = this.getInventory().getItem(index);
+            return item.isEmpty() ? null : CraftItemStack.asCraftMirror(item);
+        });
     }
 
     protected ItemStack[] asCraftMirror(List<net.minecraft.world.item.ItemStack> mcItems) {
@@ -79,27 +82,35 @@ public class CraftInventory implements Inventory {
 
     @Override
     public ItemStack[] getContents() {
-        List<net.minecraft.world.item.ItemStack> mcItems = this.getInventory().getContents();
+        return ThreadedServer.withWorldMutationLock(() -> {
+            List<net.minecraft.world.item.ItemStack> mcItems = this.getInventory().getContents();
 
-        return this.asCraftMirror(mcItems);
+            return this.asCraftMirror(mcItems);
+        });
     }
 
     @Override
     public void setContents(ItemStack[] items) {
-        Preconditions.checkArgument(items.length <= this.getSize(), "Invalid inventory size (%s); expected %s or less", items.length, this.getSize());
+        ThreadedServer.withWorldMutationLock(() -> {
+            Preconditions.checkArgument(items.length <= this.getSize(), "Invalid inventory size (%s); expected %s or less", items.length, this.getSize());
 
-        for (int i = 0; i < this.getSize(); i++) {
-            if (i >= items.length) {
-                this.setItem(i, null);
-            } else {
-                this.setItem(i, items[i]);
+            for (int i = 0; i < this.getSize(); i++) {
+                if (i >= items.length) {
+                    this.setItem(i, null);
+                } else {
+                    this.setItem(i, items[i]);
+                }
             }
-        }
+            return null;
+        });
     }
 
     @Override
     public void setItem(int index, ItemStack item) {
-        this.getInventory().setItem(index, CraftItemStack.asNMSCopy(item));
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getInventory().setItem(index, CraftItemStack.asNMSCopy(item));
+            return null;
+        });
     }
 
     @Override
@@ -259,7 +270,7 @@ public class CraftInventory implements Inventory {
 
     @Override
     public boolean isEmpty() {
-        return this.inventory.isEmpty();
+        return ThreadedServer.withWorldMutationLock(() -> this.inventory.isEmpty());
     }
 
     public int firstPartial(Material material) {
@@ -292,69 +303,71 @@ public class CraftInventory implements Inventory {
 
     @Override
     public HashMap<Integer, ItemStack> addItem(ItemStack... items) {
-        Preconditions.checkArgument(items != null, "items cannot be null");
-        HashMap<Integer, ItemStack> leftover = new HashMap<>();
+        return ThreadedServer.withWorldMutationLock(() -> {
+            Preconditions.checkArgument(items != null, "items cannot be null");
+            HashMap<Integer, ItemStack> leftover = new HashMap<>();
 
-        /* TODO: some optimization
-         *  - Create a 'firstPartial' with a 'fromIndex'
-         *  - Record the lastPartial per Material
-         *  - Cache firstEmpty result
-         */
+            /* TODO: some optimization
+             *  - Create a 'firstPartial' with a 'fromIndex'
+             *  - Record the lastPartial per Material
+             *  - Cache firstEmpty result
+             */
 
-        for (int i = 0; i < items.length; i++) {
-            ItemStack item = items[i];
-            Preconditions.checkArgument(item != null, "ItemStack cannot be null");
-            while (true) {
-                // Do we already have a stack of it?
-                int firstPartial = this.firstPartial(item);
+            for (int i = 0; i < items.length; i++) {
+                ItemStack item = items[i];
+                Preconditions.checkArgument(item != null, "ItemStack cannot be null");
+                while (true) {
+                    // Do we already have a stack of it?
+                    int firstPartial = this.firstPartial(item);
 
-                // Drat! no partial stack
-                if (firstPartial == -1) {
-                    // Find a free spot!
-                    int firstFree = this.firstEmpty();
+                    // Drat! no partial stack
+                    if (firstPartial == -1) {
+                        // Find a free spot!
+                        int firstFree = this.firstEmpty();
 
-                    if (firstFree == -1) {
-                        // No space at all!
-                        leftover.put(i, item);
-                        break;
-                    } else {
-                        // More than a single stack!
-                        if (item.getAmount() > this.getMaxItemStack()) {
-                            CraftItemStack stack = CraftItemStack.asCraftCopy(item);
-                            stack.setAmount(this.getMaxItemStack());
-                            this.setItem(firstFree, stack);
-                            item.setAmount(item.getAmount() - this.getMaxItemStack());
+                        if (firstFree == -1) {
+                            // No space at all!
+                            leftover.put(i, item);
+                            break;
                         } else {
-                            // Just store it
-                            this.setItem(firstFree, item);
+                            // More than a single stack!
+                            if (item.getAmount() > this.getMaxItemStack()) {
+                                CraftItemStack stack = CraftItemStack.asCraftCopy(item);
+                                stack.setAmount(this.getMaxItemStack());
+                                this.setItem(firstFree, stack);
+                                item.setAmount(item.getAmount() - this.getMaxItemStack());
+                            } else {
+                                // Just store it
+                                this.setItem(firstFree, item);
+                                break;
+                            }
+                        }
+                    } else {
+                        // So, apparently it might only partially fit, well lets do just that
+                        ItemStack partialItem = this.getItem(firstPartial);
+
+                        int amount = item.getAmount();
+                        int partialAmount = partialItem.getAmount();
+                        int maxAmount = partialItem.getMaxStackSize();
+
+                        // Check if it fully fits
+                        if (amount + partialAmount <= maxAmount) {
+                            partialItem.setAmount(amount + partialAmount);
+                            // To make sure the packet is sent to the client
+                            this.setItem(firstPartial, partialItem);
                             break;
                         }
-                    }
-                } else {
-                    // So, apparently it might only partially fit, well lets do just that
-                    ItemStack partialItem = this.getItem(firstPartial);
 
-                    int amount = item.getAmount();
-                    int partialAmount = partialItem.getAmount();
-                    int maxAmount = partialItem.getMaxStackSize();
-
-                    // Check if it fully fits
-                    if (amount + partialAmount <= maxAmount) {
-                        partialItem.setAmount(amount + partialAmount);
+                        // It fits partially
+                        partialItem.setAmount(maxAmount);
                         // To make sure the packet is sent to the client
                         this.setItem(firstPartial, partialItem);
-                        break;
+                        item.setAmount(amount + partialAmount - maxAmount);
                     }
-
-                    // It fits partially
-                    partialItem.setAmount(maxAmount);
-                    // To make sure the packet is sent to the client
-                    this.setItem(firstPartial, partialItem);
-                    item.setAmount(amount + partialAmount - maxAmount);
                 }
             }
-        }
-        return leftover;
+            return leftover;
+        });
     }
 
     @Override
@@ -370,50 +383,52 @@ public class CraftInventory implements Inventory {
 
     private HashMap<Integer, ItemStack> removeItem(boolean searchEntire, ItemStack... items) {
         // Paper end
-        Preconditions.checkArgument(items != null, "items cannot be null");
-        HashMap<Integer, ItemStack> leftover = new HashMap<Integer, ItemStack>();
+        return ThreadedServer.withWorldMutationLock(() -> {
+            Preconditions.checkArgument(items != null, "items cannot be null");
+            HashMap<Integer, ItemStack> leftover = new HashMap<Integer, ItemStack>();
 
-        // TODO: optimization
+            // TODO: optimization
 
-        for (int i = 0; i < items.length; i++) {
-            ItemStack item = items[i];
-            Preconditions.checkArgument(item != null, "ItemStack cannot be null");
-            int toDelete = item.getAmount();
+            for (int i = 0; i < items.length; i++) {
+                ItemStack item = items[i];
+                Preconditions.checkArgument(item != null, "ItemStack cannot be null");
+                int toDelete = item.getAmount();
 
-            while (true) {
-                // Paper start - Allow searching entire contents
-                ItemStack[] toSearch = searchEntire ? getContents() : getStorageContents();
-                int first = this.first(item, false, toSearch);
-                // Paper end
+                while (true) {
+                    // Paper start - Allow searching entire contents
+                    ItemStack[] toSearch = searchEntire ? getContents() : getStorageContents();
+                    int first = this.first(item, false, toSearch);
+                    // Paper end
 
-                // Drat! we don't have this type in the inventory
-                if (first == -1) {
-                    item.setAmount(toDelete);
-                    leftover.put(i, item);
-                    break;
-                } else {
-                    ItemStack itemStack = this.getItem(first);
-                    int amount = itemStack.getAmount();
-
-                    if (amount <= toDelete) {
-                        toDelete -= amount;
-                        // clear the slot, all used up
-                        this.clear(first);
+                    // Drat! we don't have this type in the inventory
+                    if (first == -1) {
+                        item.setAmount(toDelete);
+                        leftover.put(i, item);
+                        break;
                     } else {
-                        // split the stack and store
-                        itemStack.setAmount(amount - toDelete);
-                        this.setItem(first, itemStack);
-                        toDelete = 0;
+                        ItemStack itemStack = this.getItem(first);
+                        int amount = itemStack.getAmount();
+
+                        if (amount <= toDelete) {
+                            toDelete -= amount;
+                            // clear the slot, all used up
+                            this.clear(first);
+                        } else {
+                            // split the stack and store
+                            itemStack.setAmount(amount - toDelete);
+                            this.setItem(first, itemStack);
+                            toDelete = 0;
+                        }
+                    }
+
+                    // Bail when done
+                    if (toDelete <= 0) {
+                        break;
                     }
                 }
-
-                // Bail when done
-                if (toDelete <= 0) {
-                    break;
-                }
             }
-        }
-        return leftover;
+            return leftover;
+        });
     }
 
     private int getMaxItemStack() {
@@ -422,36 +437,48 @@ public class CraftInventory implements Inventory {
 
     @Override
     public void remove(Material material) {
-        Preconditions.checkArgument(material != null, "Material cannot be null");
-        material = CraftLegacy.fromLegacy(material);
-        ItemStack[] items = this.getStorageContents();
-        for (int i = 0; i < items.length; i++) {
-            if (items[i] != null && items[i].getType() == material) {
-                this.clear(i);
+        ThreadedServer.withWorldMutationLock(() -> {
+            Preconditions.checkArgument(material != null, "Material cannot be null");
+            Material checkedMaterial = CraftLegacy.fromLegacy(material);
+            ItemStack[] items = this.getStorageContents();
+            for (int i = 0; i < items.length; i++) {
+                if (items[i] != null && items[i].getType() == checkedMaterial) {
+                    this.clear(i);
+                }
             }
-        }
+            return null;
+        });
     }
 
     @Override
     public void remove(ItemStack item) {
-        ItemStack[] items = this.getStorageContents();
-        for (int i = 0; i < items.length; i++) {
-            if (items[i] != null && items[i].equals(item)) {
-                this.clear(i);
+        ThreadedServer.withWorldMutationLock(() -> {
+            ItemStack[] items = this.getStorageContents();
+            for (int i = 0; i < items.length; i++) {
+                if (items[i] != null && items[i].equals(item)) {
+                    this.clear(i);
+                }
             }
-        }
+            return null;
+        });
     }
 
     @Override
     public void clear(int index) {
-        this.setItem(index, null);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.setItem(index, null);
+            return null;
+        });
     }
 
     @Override
     public void clear() {
-        for (int i = 0; i < this.getSize(); i++) {
-            this.clear(i);
-        }
+        ThreadedServer.withWorldMutationLock(() -> {
+            for (int i = 0; i < this.getSize(); i++) {
+                this.clear(i);
+            }
+            return null;
+        });
     }
 
     // Paper start
@@ -567,12 +594,15 @@ public class CraftInventory implements Inventory {
 
     @Override
     public int getMaxStackSize() {
-        return this.inventory.getMaxStackSize();
+        return ThreadedServer.withWorldMutationLock(() -> this.inventory.getMaxStackSize());
     }
 
     @Override
     public void setMaxStackSize(int size) {
-        this.inventory.setMaxStackSize(size);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.inventory.setMaxStackSize(size);
+            return null;
+        });
     }
 
     @Override

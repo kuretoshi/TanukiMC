@@ -1200,11 +1200,17 @@
          if (this.isPassenger()) {
              this.getVehicle().positionRider(this);
          }
-@@ -1982,7 +_,7 @@
+@@ -1982,7 +_,13 @@
      }
  
      public boolean startRiding(Entity p_19966_, boolean p_19967_) {
 -        if (p_19966_ == this.vehicle) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
++        if (p_19966_.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(p_19966_);
++        }
 +        if (p_19966_ == this.vehicle || p_19966_.level != this.level) { // Paper - Ensure entity passenger world matches ridden entity (bad plugins)
              return false;
          } else if (!p_19966_.couldAcceptPassenger()) {
@@ -1217,10 +1223,16 @@
              if (p_19967_ || this.canRide(p_19966_) && p_19966_.canAddPassenger(this)) {
                  if (this.isPassenger()) {
                      this.stopRiding();
-@@ -2024,8 +_,10 @@
+@@ -2024,8 +_,16 @@
      public void removeVehicle() {
          if (this.vehicle != null) {
              Entity entity = this.vehicle;
++            if (this.isAddedToLevel()) {
++                com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++            }
++            if (entity.isAddedToLevel()) {
++                com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(entity);
++            }
 +            if (!net.neoforged.neoforge.event.EventHooks.canMountEntity(this, entity, false)) return;
              this.vehicle = null;
              entity.removePassenger(this);
@@ -1735,7 +1747,17 @@
          return this.fluidHeight.getDouble(p_204037_);
      }
  
-@@ -3307,7 +_,33 @@
+@@ -3244,6 +_,9 @@
+     }
+ 
+     public void setDeltaMovement(Vec3 p_20257_) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
+         this.deltaMovement = p_20257_;
+     }
+ 
+@@ -3307,7 +_,36 @@
          return this.getZ((2.0 * this.random.nextDouble() - 1.0) * p_20263_);
      }
  
@@ -1756,6 +1778,9 @@
 +    }
 +    public AtomicBoolean setPosRaw$forceBoundingBoxUpdate = new AtomicBoolean(false);
      public final void setPosRaw(double p_20344_, double p_20345_, double p_20346_) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        // Paper start - Fix MC-4
 +        if (this instanceof ItemEntity) {
 +            if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.fixEntityPositionDesync) {
@@ -1782,13 +1807,34 @@
      }
  
      public void checkDespawn() {
-@@ -3410,8 +_,14 @@
+@@ -3371,6 +_,9 @@
+     }
+ 
+     public void setYRot(float p_146923_) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
+         if (!Float.isFinite(p_146923_)) {
+             Util.logAndPauseIfInIde("Invalid entity rotation: " + p_146923_ + ", discarding.");
+         } else {
+@@ -3383,6 +_,9 @@
+     }
+ 
+     public void setXRot(float p_146927_) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
+         if (!Float.isFinite(p_146927_)) {
+             Util.logAndPauseIfInIde("Invalid entity rotation: " + p_146927_ + ", discarding.");
+         } else {
+@@ -3410,8 +_,15 @@
          return this.removalReason;
      }
  
 +    // Youer start
      @Override
      public final void setRemoved(Entity.RemovalReason p_146876_) {
++        com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
 +        if (!AsyncCatcher.catchAsync()) {
 +            CraftEventFactory.callEntityRemoveEvent(this, removeReason);
 +        }
@@ -1797,7 +1843,7 @@
          if (this.removalReason == null) {
              this.removalReason = p_146876_;
          }
-@@ -3420,14 +_,39 @@
+@@ -3420,14 +_,40 @@
              this.stopRiding();
          }
  
@@ -1808,7 +1854,7 @@
          this.levelCallback.onRemove(p_146876_);
 -    }
 +        // Paper start - Folia schedulers
-+        if (!(this instanceof ServerPlayer) && p_146876_ != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
++        if (!(this instanceof ServerPlayer) && p_146876_ != RemovalReason.CHANGED_DIMENSION && p_146876_ != RemovalReason.UNLOADED_TO_CHUNK && p_146876_ != RemovalReason.UNLOADED_WITH_PLAYER && !alreadyRemoved) {
 +            // Players need to be special cased, because they are regularly removed from the world
 +            this.retireScheduler();
 +        }
@@ -1817,6 +1863,7 @@
 +
 +    @Override
 +    public final void setRemovedCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
++        com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
 +        this.removeReason = cause;
 +        this.setRemoved(entity_removalreason);
 +    }

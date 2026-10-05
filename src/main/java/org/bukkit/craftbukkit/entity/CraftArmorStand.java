@@ -81,7 +81,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setBodyPose(EulerAngle pose) {
-        this.getHandle().setBodyPose(CraftArmorStand.toNMS(pose));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setBodyPose(CraftArmorStand.toNMS(pose));
+            return null;
+        });
     }
 
     @Override
@@ -91,7 +94,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setLeftArmPose(EulerAngle pose) {
-        this.getHandle().setLeftArmPose(CraftArmorStand.toNMS(pose));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setLeftArmPose(CraftArmorStand.toNMS(pose));
+            return null;
+        });
     }
 
     @Override
@@ -101,7 +107,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setRightArmPose(EulerAngle pose) {
-        this.getHandle().setRightArmPose(CraftArmorStand.toNMS(pose));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setRightArmPose(CraftArmorStand.toNMS(pose));
+            return null;
+        });
     }
 
     @Override
@@ -111,7 +120,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setLeftLegPose(EulerAngle pose) {
-        this.getHandle().setLeftLegPose(CraftArmorStand.toNMS(pose));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setLeftLegPose(CraftArmorStand.toNMS(pose));
+            return null;
+        });
     }
 
     @Override
@@ -121,7 +133,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setRightLegPose(EulerAngle pose) {
-        this.getHandle().setRightLegPose(CraftArmorStand.toNMS(pose));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setRightLegPose(CraftArmorStand.toNMS(pose));
+            return null;
+        });
     }
 
     @Override
@@ -131,7 +146,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setHeadPose(EulerAngle pose) {
-        this.getHandle().setHeadPose(CraftArmorStand.toNMS(pose));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setHeadPose(CraftArmorStand.toNMS(pose));
+            return null;
+        });
     }
 
     @Override
@@ -141,21 +159,30 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setBasePlate(boolean basePlate) {
-        this.getHandle().setNoBasePlate(!basePlate);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setNoBasePlate(!basePlate);
+            return null;
+        });
     }
 
     @Override
     public void setGravity(boolean gravity) {
-        super.setGravity(gravity);
-        // Armor stands are special
-        this.getHandle().noPhysics = !gravity;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            super.setGravity(gravity);
+            // Armor stands are special
+            this.getHandle().noPhysics = !gravity;
+            return null;
+        });
     }
 
     // Paper start - Armor Stand has its own invisible field
     @Override
     public void setInvisible(final boolean invisible) {
-        this.getHandle().setInvisible(invisible);
-        super.setInvisible(invisible);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setInvisible(invisible);
+            super.setInvisible(invisible);
+            return null;
+        });
     }
     // Paper end
 
@@ -166,7 +193,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setVisible(boolean visible) {
-        this.getHandle().setInvisible(!visible);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setInvisible(!visible);
+            return null;
+        });
     }
 
     @Override
@@ -176,7 +206,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setArms(boolean arms) {
-        this.getHandle().setShowArms(arms);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setShowArms(arms);
+            return null;
+        });
     }
 
     @Override
@@ -186,7 +219,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setSmall(boolean small) {
-        this.getHandle().setSmall(small);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setSmall(small);
+            return null;
+        });
     }
 
     private static EulerAngle fromNMS(Rotations old) {
@@ -212,17 +248,26 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setMarker(boolean marker) {
-        this.getHandle().setMarker(marker);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setMarker(marker);
+            return null;
+        });
     }
 
     @Override
     public void addEquipmentLock(EquipmentSlot equipmentSlot, LockType lockType) {
-        this.getHandle().disabledSlots |= (1 << CraftEquipmentSlot.getNMS(equipmentSlot).getFilterFlag() + lockType.ordinal() * 8);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().disabledSlots |= (1 << CraftEquipmentSlot.getNMS(equipmentSlot).getFilterFlag() + lockType.ordinal() * 8);
+            return null;
+        });
     }
 
     @Override
     public void removeEquipmentLock(EquipmentSlot equipmentSlot, LockType lockType) {
-        this.getHandle().disabledSlots &= ~(1 << CraftEquipmentSlot.getNMS(equipmentSlot).getFilterFlag() + lockType.ordinal() * 8);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().disabledSlots &= ~(1 << CraftEquipmentSlot.getNMS(equipmentSlot).getFilterFlag() + lockType.ordinal() * 8);
+            return null;
+        });
     }
 
     @Override
@@ -238,7 +283,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setCanMove(boolean move) {
-        getHandle().canMove = move;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().canMove = move;
+            return null;
+        });
     }
 
     @Override
@@ -288,13 +336,16 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setDisabledSlots(org.bukkit.inventory.EquipmentSlot... slots) {
-        int disabled = 0;
-        for (org.bukkit.inventory.EquipmentSlot slot : slots) {
-            if (slot == org.bukkit.inventory.EquipmentSlot.OFF_HAND) continue;
-            net.minecraft.world.entity.EquipmentSlot nmsSlot = org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot);
-            disabled += (1 << nmsSlot.getFilterFlag()) + (1 << (nmsSlot.getFilterFlag() + 8)) + (1 << (nmsSlot.getFilterFlag() + 16));
-        }
-        getHandle().disabledSlots = disabled;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            int disabled = 0;
+            for (org.bukkit.inventory.EquipmentSlot slot : slots) {
+                if (slot == org.bukkit.inventory.EquipmentSlot.OFF_HAND) continue;
+                net.minecraft.world.entity.EquipmentSlot nmsSlot = org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot);
+                disabled += (1 << nmsSlot.getFilterFlag()) + (1 << (nmsSlot.getFilterFlag() + 8)) + (1 << (nmsSlot.getFilterFlag() + 16));
+            }
+            getHandle().disabledSlots = disabled;
+            return null;
+        });
     }
 
     @Override
@@ -323,7 +374,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setBodyRotations(io.papermc.paper.math.Rotations rotations) {
-        getHandle().setBodyPose(toNMSRotations(rotations));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setBodyPose(toNMSRotations(rotations));
+            return null;
+        });
     }
 
     @Override
@@ -333,7 +387,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setLeftArmRotations(io.papermc.paper.math.Rotations rotations) {
-        getHandle().setLeftArmPose(toNMSRotations(rotations));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setLeftArmPose(toNMSRotations(rotations));
+            return null;
+        });
     }
 
     @Override
@@ -343,7 +400,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setRightArmRotations(io.papermc.paper.math.Rotations rotations) {
-        getHandle().setRightArmPose(toNMSRotations(rotations));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setRightArmPose(toNMSRotations(rotations));
+            return null;
+        });
     }
 
     @Override
@@ -353,7 +413,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setLeftLegRotations(io.papermc.paper.math.Rotations rotations) {
-        getHandle().setLeftLegPose(toNMSRotations(rotations));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setLeftLegPose(toNMSRotations(rotations));
+            return null;
+        });
     }
 
     @Override
@@ -363,7 +426,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setRightLegRotations(io.papermc.paper.math.Rotations rotations) {
-        getHandle().setRightLegPose(toNMSRotations(rotations));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setRightLegPose(toNMSRotations(rotations));
+            return null;
+        });
     }
 
     @Override
@@ -373,7 +439,10 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setHeadRotations(io.papermc.paper.math.Rotations rotations) {
-        getHandle().setHeadPose(toNMSRotations(rotations));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setHeadPose(toNMSRotations(rotations));
+            return null;
+        });
     }
 
     private static io.papermc.paper.math.Rotations fromNMSRotations(Rotations old) {
@@ -391,8 +460,11 @@ public class CraftArmorStand extends CraftLivingEntity implements ArmorStand {
 
     @Override
     public void setCanTick(final boolean tick) {
-        this.getHandle().canTick = tick;
-        this.getHandle().canTickSetByAPI = true;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().canTick = tick;
+            this.getHandle().canTickSetByAPI = true;
+            return null;
+        });
     }
     // Paper end
 }

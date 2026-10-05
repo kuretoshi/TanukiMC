@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Parrot;
 
@@ -24,7 +25,10 @@ public class CraftParrot extends CraftTameableAnimal implements Parrot {
     public void setVariant(Variant variant) {
         Preconditions.checkArgument(variant != null, "variant");
 
-        this.getHandle().setVariant(net.minecraft.world.entity.animal.Parrot.Variant.byId(variant.ordinal()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setVariant(net.minecraft.world.entity.animal.Parrot.Variant.byId(variant.ordinal()));
+            return null;
+        });
     }
 
     @Override

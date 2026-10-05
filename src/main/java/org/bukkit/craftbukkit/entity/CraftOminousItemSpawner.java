@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.OminousItemSpawner;
@@ -28,7 +29,10 @@ public class CraftOminousItemSpawner extends CraftEntity implements OminousItemS
 
     @Override
     public void setItem(ItemStack item) {
-        this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
+            return null;
+        });
     }
 
     @Override
@@ -38,6 +42,9 @@ public class CraftOminousItemSpawner extends CraftEntity implements OminousItemS
 
     @Override
     public void setSpawnItemAfterTicks(long ticks) {
-        this.getHandle().spawnItemAfterTicks = ticks;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().spawnItemAfterTicks = ticks;
+            return null;
+        });
     }
 }

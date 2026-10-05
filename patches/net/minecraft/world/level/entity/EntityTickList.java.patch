@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/level/entity/EntityTickList.java
++++ b/net/minecraft/world/level/entity/EntityTickList.java
+@@ -5,6 +_,7 @@
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
+ import java.util.function.Consumer;
++import java.util.List;
+ import javax.annotation.Nullable;
+ import net.minecraft.world.entity.Entity;
+ 
+@@ -28,21 +_,25 @@
+         }
+     }
+ 
+-    public void add(Entity p_156909_) {
++    public synchronized void add(Entity p_156909_) {
+         this.ensureActiveIsNotIterated();
+         this.active.put(p_156909_.getId(), p_156909_);
+     }
+ 
+-    public void remove(Entity p_156913_) {
++    public synchronized void remove(Entity p_156913_) {
+         this.ensureActiveIsNotIterated();
+         this.active.remove(p_156913_.getId());
+     }
+ 
+-    public boolean contains(Entity p_156915_) {
++    public synchronized boolean contains(Entity p_156915_) {
+         return this.active.containsKey(p_156915_.getId());
+     }
+ 
+-    public void forEach(Consumer<Entity> p_156911_) {
++    public synchronized List<Entity> snapshot() {
++        return List.copyOf(this.active.values());
++    }
++
++    public synchronized void forEach(Consumer<Entity> p_156911_) {
+         if (this.iterated != null) {
+             throw new UnsupportedOperationException("Only one concurrent iteration supported");
+         } else {

@@ -1,0 +1,84 @@
+--- a/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
++++ b/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
+@@ -16,9 +_,13 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final Level level;
+     private final int maxChainedNeighborUpdates;
+-    private final ArrayDeque<CollectingNeighborUpdater.NeighborUpdates> stack = new ArrayDeque<>();
+-    private final List<CollectingNeighborUpdater.NeighborUpdates> addedThisLayer = new ArrayList<>();
+-    private int count = 0;
++    private final ThreadLocal<UpdateState> updateState = ThreadLocal.withInitial(UpdateState::new);
++
++    private static final class UpdateState {
++        private final ArrayDeque<NeighborUpdates> stack = new ArrayDeque<>();
++        private final List<NeighborUpdates> addedThisLayer = new ArrayList<>();
++        private int count;
++    }
+ 
+     public CollectingNeighborUpdater(Level p_230643_, int p_230644_) {
+         this.level = p_230643_;
+@@ -50,45 +_,46 @@
+     }
+ 
+     private void addAndRun(BlockPos p_230661_, CollectingNeighborUpdater.NeighborUpdates p_230662_) {
+-        boolean flag = this.count > 0;
+-        boolean flag1 = this.maxChainedNeighborUpdates >= 0 && this.count >= this.maxChainedNeighborUpdates;
+-        this.count++;
++        UpdateState state = this.updateState.get();
++        boolean flag = state.count > 0;
++        boolean flag1 = this.maxChainedNeighborUpdates >= 0 && state.count >= this.maxChainedNeighborUpdates;
++        state.count++;
+         if (!flag1) {
+             if (flag) {
+-                this.addedThisLayer.add(p_230662_);
++                state.addedThisLayer.add(p_230662_);
+             } else {
+-                this.stack.push(p_230662_);
++                state.stack.push(p_230662_);
+             }
+-        } else if (this.count - 1 == this.maxChainedNeighborUpdates) {
++        } else if (state.count - 1 == this.maxChainedNeighborUpdates) {
+             LOGGER.error("Too many chained neighbor updates. Skipping the rest. First skipped position: " + p_230661_.toShortString());
+         }
+ 
+         if (!flag) {
+-            this.runUpdates();
++            this.runUpdates(state);
+         }
+     }
+ 
+-    private void runUpdates() {
++    private void runUpdates(UpdateState state) {
+         try {
+-            while (!this.stack.isEmpty() || !this.addedThisLayer.isEmpty()) {
+-                for (int i = this.addedThisLayer.size() - 1; i >= 0; i--) {
+-                    this.stack.push(this.addedThisLayer.get(i));
++            while (!state.stack.isEmpty() || !state.addedThisLayer.isEmpty()) {
++                for (int i = state.addedThisLayer.size() - 1; i >= 0; i--) {
++                    state.stack.push(state.addedThisLayer.get(i));
+                 }
+ 
+-                this.addedThisLayer.clear();
+-                CollectingNeighborUpdater.NeighborUpdates collectingneighborupdater$neighborupdates = this.stack.peek();
++                state.addedThisLayer.clear();
++                CollectingNeighborUpdater.NeighborUpdates collectingneighborupdater$neighborupdates = state.stack.peek();
+ 
+-                while (this.addedThisLayer.isEmpty()) {
++                while (state.addedThisLayer.isEmpty()) {
+                     if (!collectingneighborupdater$neighborupdates.runNext(this.level)) {
+-                        this.stack.pop();
++                        state.stack.pop();
+                         break;
+                     }
+                 }
+             }
+         } finally {
+-            this.stack.clear();
+-            this.addedThisLayer.clear();
+-            this.count = 0;
++            state.stack.clear();
++            state.addedThisLayer.clear();
++            state.count = 0;
+         }
+     }
+ 

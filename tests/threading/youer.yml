@@ -1,0 +1,9 @@
+youer:
+  check_update: false
+  threaded:
+    enabled: true
+    world_ticks: true
+    worker_count: 4
+    region_chunk_shift: 4
+custom:
+  keepSpawnLoaded: false

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Vindicator;
 
@@ -26,6 +27,9 @@ public class CraftVindicator extends CraftIllager implements Vindicator {
 
     @Override
     public void setJohnny(boolean johnny) {
-        this.getHandle().isJohnny = johnny;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().isJohnny = johnny;
+            return null;
+        });
     }
 }

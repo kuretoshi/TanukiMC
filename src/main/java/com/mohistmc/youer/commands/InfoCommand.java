@@ -39,7 +39,7 @@ public class InfoCommand extends Command {
 
     public InfoCommand(String name) {
         super(name);
-        this.description = "Youer infos commands";
+        this.description = "TanukiMC info commands";
         this.usageMessage = "/infos [item|block|entity|cmd|item-component]";
         this.setPermission("youer.command.infos");
     }

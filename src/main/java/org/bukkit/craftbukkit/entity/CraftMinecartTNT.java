@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.vehicle.MinecartTNT;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.minecart.ExplosiveMinecart;
@@ -12,7 +13,10 @@ public final class CraftMinecartTNT extends CraftMinecart implements ExplosiveMi
 
     @Override
     public void setFuseTicks(int ticks) {
-        this.getHandle().fuse = ticks;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().fuse = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -22,7 +26,10 @@ public final class CraftMinecartTNT extends CraftMinecart implements ExplosiveMi
 
     @Override
     public void ignite() {
-        this.getHandle().primeFuse();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().primeFuse();
+            return null;
+        });
     }
 
     @Override
@@ -32,14 +39,20 @@ public final class CraftMinecartTNT extends CraftMinecart implements ExplosiveMi
 
     @Override
     public void explode() {
-        this.getHandle().explode(this.getHandle().getDeltaMovement().horizontalDistanceSqr());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().explode(this.getHandle().getDeltaMovement().horizontalDistanceSqr());
+            return null;
+        });
     }
 
     @Override
     public void explode(double power) {
         Preconditions.checkArgument(0 <= power && power <= 5, "Power must be in range [0, 5] (got %s)", power);
 
-        this.getHandle().explode(power);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().explode(power);
+            return null;
+        });
     }
 
     @Override

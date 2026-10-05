@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Hoglin;
 
@@ -17,7 +18,10 @@ public class CraftHoglin extends CraftAnimals implements Hoglin, CraftEnemy {
 
     @Override
     public void setImmuneToZombification(boolean flag) {
-        this.getHandle().setImmuneToZombification(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setImmuneToZombification(flag);
+            return null;
+        });
     }
 
     @Override
@@ -27,7 +31,10 @@ public class CraftHoglin extends CraftAnimals implements Hoglin, CraftEnemy {
 
     @Override
     public void setIsAbleToBeHunted(boolean flag) {
-        this.getHandle().cannotBeHunted = flag;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().cannotBeHunted = flag;
+            return null;
+        });
     }
 
     @Override
@@ -38,12 +45,15 @@ public class CraftHoglin extends CraftAnimals implements Hoglin, CraftEnemy {
 
     @Override
     public void setConversionTime(int time) {
-        if (time < 0) {
-            this.getHandle().timeInOverworld = -1;
-            this.getHandle().setImmuneToZombification(false);
-        } else {
-            this.getHandle().timeInOverworld = time;
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (time < 0) {
+                this.getHandle().timeInOverworld = -1;
+                this.getHandle().setImmuneToZombification(false);
+            } else {
+                this.getHandle().timeInOverworld = time;
+            }
+            return null;
+        });
     }
 
     @Override

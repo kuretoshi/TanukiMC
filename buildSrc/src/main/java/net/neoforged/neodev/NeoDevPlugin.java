@@ -142,6 +142,16 @@ public class NeoDevPlugin implements Plugin<Project> {
             task.from(project.zipTree(applyPatches.flatMap(ApplyPatches::getPatchedJar)));
             task.into(mcSourcesPath);
         });
+        tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, task -> task.mustRunAfter("setup"));
+        tasks.withType(GenerateSourcePatches.class, task -> task.mustRunAfter("setup"));
+
+        tasks.register("verifySourcePatches", VerifySourcePatches.class, task -> {
+            task.setGroup("verification");
+            task.setDescription("Checks that packaged Minecraft sources match the versioned patches");
+            task.getPatchedJar().set(applyPatches.flatMap(ApplyPatches::getPatchedJar));
+            task.getSources().set(mcSourcesPath);
+            task.mustRunAfter("setup");
+        });
 
         /*
          * RUNS SETUP
@@ -245,11 +255,12 @@ public class NeoDevPlugin implements Plugin<Project> {
                 manifest.attributes(Map.of("FML-System-Mods", "neoforge"));
                 manifest.attributes(Map.of("Build-Time", timestamp));
                 manifest.attributes(Map.of("Git-Commit", abbreviatedId));
-                manifest.attributes(Map.of("Brand-Id", "mohistmc:youer"));
-                manifest.attributes(Map.of("Specification-Title", "Youer"));
+                manifest.attributes(Map.of("Brand-Id", "tanukimc:tanukimc"));
+                manifest.attributes(Map.of("Brand-Name", "TanukiMC"));
+                manifest.attributes(Map.of("Specification-Title", "TanukiMC"));
                 manifest.attributes(Map.of("Specification-Vendor", "MohistMC"));
                 manifest.attributes(Map.of("Specification-Version", minecraftVersion));
-                manifest.attributes(Map.of("Implementation-Title", "Youer"));
+                manifest.attributes(Map.of("Implementation-Title", "TanukiMC"));
                 manifest.attributes(Map.of("Implementation-Version", minecraftVersion));
                 manifest.attributes(Map.of("Implementation-Vendor", "MohistMC"));
                 manifest.attributes(Map.of("CraftBukkit-Package-Version", "v1_21_R1"));

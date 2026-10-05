@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
@@ -12,12 +13,15 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
 
     @Override
     public void setItem(final int slot, @Nullable final ItemStack item) {
-        Inventory inventory = getInventory(slot);
-        if (inventory != null) {
-            inventory.setItem(convertSlot(slot), item);
-        } else if (item != null) {
-            getPlayer().getWorld().dropItemNaturally(getPlayer().getLocation(), item);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Inventory inventory = getInventory(slot);
+            if (inventory != null) {
+                inventory.setItem(convertSlot(slot), item);
+            } else if (item != null) {
+                getPlayer().getWorld().dropItemNaturally(getPlayer().getLocation(), item);
+            }
+            return null;
+        });
     }
 
     @Nullable
@@ -29,7 +33,10 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
 
     @Override
     public void setCursor(@Nullable final ItemStack item) {
-        getPlayer().setItemOnCursor(item);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getPlayer().setItemOnCursor(item);
+            return null;
+        });
     }
 
     @Nullable
@@ -206,7 +213,10 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
 
     @Override
     public void close() {
-        getPlayer().closeInventory();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getPlayer().closeInventory();
+            return null;
+        });
     }
 
     @Override
@@ -216,6 +226,6 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
 
     @Override
     public boolean setProperty(@NotNull final Property prop, final int value) {
-        return getPlayer().setWindowProperty(prop, value);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> getPlayer().setWindowProperty(prop, value));
     }
 }

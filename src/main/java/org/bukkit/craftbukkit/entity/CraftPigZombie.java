@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.PigZombie;
@@ -17,7 +18,10 @@ public class CraftPigZombie extends CraftZombie implements PigZombie {
 
     @Override
     public void setAnger(int level) {
-        this.getHandle().setRemainingPersistentAngerTime(level);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setRemainingPersistentAngerTime(level);
+            return null;
+        });
     }
 
     @Override

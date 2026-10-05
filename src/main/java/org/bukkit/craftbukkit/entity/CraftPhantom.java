@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Phantom;
 
@@ -21,7 +22,10 @@ public class CraftPhantom extends CraftFlying implements Phantom, CraftEnemy {
 
     @Override
     public void setSize(int sz) {
-        this.getHandle().setPhantomSize(sz);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setPhantomSize(sz);
+            return null;
+        });
     }
 
     @Override
@@ -42,7 +46,10 @@ public class CraftPhantom extends CraftFlying implements Phantom, CraftEnemy {
 
     @Override
     public void setShouldBurnInDay(boolean shouldBurnInDay) {
-        getHandle().setShouldBurnInDay(shouldBurnInDay);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setShouldBurnInDay(shouldBurnInDay);
+            return null;
+        });
     }
 
     @Override
@@ -54,7 +61,10 @@ public class CraftPhantom extends CraftFlying implements Phantom, CraftEnemy {
     @Override
     public void setAnchorLocation(org.bukkit.Location location) {
         com.google.common.base.Preconditions.checkArgument(location != null, "location cannot be null");
-        this.getHandle().anchorPoint = io.papermc.paper.util.MCUtil.toBlockPosition(location);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().anchorPoint = io.papermc.paper.util.MCUtil.toBlockPosition(location);
+            return null;
+        });
     }
     // Paper end
 }

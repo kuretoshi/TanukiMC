@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.UUID;
 import net.minecraft.world.entity.animal.Animal;
 import org.bukkit.Material;
@@ -32,7 +33,10 @@ public class CraftAnimals extends CraftAgeable implements Animals {
 
     @Override
     public void setBreedCause(UUID uuid) {
-        this.getHandle().loveCause = uuid;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().loveCause = uuid;
+            return null;
+        });
     }
 
     @Override
@@ -42,8 +46,11 @@ public class CraftAnimals extends CraftAgeable implements Animals {
 
     @Override
     public void setLoveModeTicks(int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "Love mode ticks must be positive or 0");
-        this.getHandle().setInLoveTime(ticks);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "Love mode ticks must be positive or 0");
+            this.getHandle().setInLoveTime(ticks);
+            return null;
+        });
     }
 
     @Override

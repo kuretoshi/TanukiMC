@@ -17,10 +17,10 @@ license="LGPL v2.1"
 [[mods]]
     modId="youer"
     version="1.21.1"
-    displayName="Youer"
+    displayName="TanukiMC"
     authors="MohistMC"
     description='''
-    Youer, a server of Paper/Purpur and neoforge
+    TanukiMC, a server combining NeoForge mods and Bukkit plugins
     '''
 
 [[mixins]]

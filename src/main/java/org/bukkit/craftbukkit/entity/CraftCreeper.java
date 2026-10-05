@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
@@ -19,12 +20,15 @@ public class CraftCreeper extends CraftMonster implements Creeper {
 
     @Override
     public void setPowered(boolean powered) {
-        CreeperPowerEvent.PowerCause cause = powered ? CreeperPowerEvent.PowerCause.SET_ON : CreeperPowerEvent.PowerCause.SET_OFF;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CreeperPowerEvent.PowerCause cause = powered ? CreeperPowerEvent.PowerCause.SET_ON : CreeperPowerEvent.PowerCause.SET_OFF;
 
-        // only call event when we are not in world generation
-        if (this.getHandle().generation || !this.callPowerEvent(cause)) {
-            this.getHandle().setPowered(powered);
-        }
+            // only call event when we are not in world generation
+            if (this.getHandle().generation || !this.callPowerEvent(cause)) {
+                this.getHandle().setPowered(powered);
+            }
+            return null;
+        });
     }
 
     private boolean callPowerEvent(CreeperPowerEvent.PowerCause cause) {
@@ -35,9 +39,12 @@ public class CraftCreeper extends CraftMonster implements Creeper {
 
     @Override
     public void setMaxFuseTicks(int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "ticks < 0");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "ticks < 0");
 
-        this.getHandle().maxSwell = ticks;
+            this.getHandle().maxSwell = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -47,10 +54,13 @@ public class CraftCreeper extends CraftMonster implements Creeper {
 
     @Override
     public void setFuseTicks(int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "ticks < 0");
-        Preconditions.checkArgument(ticks <= this.getMaxFuseTicks(), "ticks > maxFuseTicks");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "ticks < 0");
+            Preconditions.checkArgument(ticks <= this.getMaxFuseTicks(), "ticks > maxFuseTicks");
 
-        this.getHandle().swell = ticks;
+            this.getHandle().swell = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -60,9 +70,12 @@ public class CraftCreeper extends CraftMonster implements Creeper {
 
     @Override
     public void setExplosionRadius(int radius) {
-        Preconditions.checkArgument(radius >= 0, "radius < 0");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(radius >= 0, "radius < 0");
 
-        this.getHandle().explosionRadius = radius;
+            this.getHandle().explosionRadius = radius;
+            return null;
+        });
     }
 
     @Override
@@ -72,19 +85,28 @@ public class CraftCreeper extends CraftMonster implements Creeper {
 
     @Override
     public void explode() {
-        this.getHandle().explodeCreeper();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().explodeCreeper();
+            return null;
+        });
     }
 
     @Override
     public void ignite(Entity entity) {
-        Preconditions.checkNotNull(entity, "entity cannot be null");
-        getHandle().entityIgniter = ((CraftEntity) entity).getHandle();
-        getHandle().ignite();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkNotNull(entity, "entity cannot be null");
+            getHandle().entityIgniter = ((CraftEntity) entity).getHandle();
+            getHandle().ignite();
+            return null;
+        });
     }
 
     @Override
     public void ignite() {
-        this.getHandle().ignite();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().ignite();
+            return null;
+        });
     }
 
     @Override
@@ -105,7 +127,10 @@ public class CraftCreeper extends CraftMonster implements Creeper {
     // Paper start
     @Override
     public void setIgnited(boolean ignited) {
-        getHandle().setIgnited(ignited);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setIgnited(ignited);
+            return null;
+        });
     }
 
     @Override

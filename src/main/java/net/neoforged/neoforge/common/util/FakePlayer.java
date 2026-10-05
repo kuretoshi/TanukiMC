@@ -160,7 +160,6 @@ public class FakePlayer extends ServerPlayer {
             super(fixer, playerList, manager, path, player);
         }
 
-        @Override
         protected void load(ServerAdvancementManager manager) {}
 
         @Override

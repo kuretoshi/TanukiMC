@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Projectile;
 
@@ -25,7 +26,10 @@ public abstract class AbstractProjectile extends CraftEntity implements Projecti
 
     @Override
     public void setHasLeftShooter(boolean leftShooter) {
-        this.getHandle().leftOwner = leftShooter;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().leftOwner = leftShooter;
+            return null;
+        });
     }
 
     @Override
@@ -35,7 +39,10 @@ public abstract class AbstractProjectile extends CraftEntity implements Projecti
 
     @Override
     public void setHasBeenShot(boolean beenShot) {
-        this.getHandle().hasBeenShot = beenShot;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().hasBeenShot = beenShot;
+            return null;
+        });
     }
 
     @Override
@@ -45,12 +52,18 @@ public abstract class AbstractProjectile extends CraftEntity implements Projecti
 
     @Override
     public void hitEntity(org.bukkit.entity.Entity entity) {
-        this.getHandle().preHitTargetOrDeflectSelf(new net.minecraft.world.phys.EntityHitResult(((CraftEntity) entity).getHandle()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().preHitTargetOrDeflectSelf(new net.minecraft.world.phys.EntityHitResult(((CraftEntity) entity).getHandle()));
+            return null;
+        });
     }
 
     @Override
     public void hitEntity(org.bukkit.entity.Entity entity, org.bukkit.util.Vector vector) {
-        this.getHandle().preHitTargetOrDeflectSelf(new net.minecraft.world.phys.EntityHitResult(((CraftEntity) entity).getHandle(), new net.minecraft.world.phys.Vec3(vector.getX(), vector.getY(), vector.getZ())));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().preHitTargetOrDeflectSelf(new net.minecraft.world.phys.EntityHitResult(((CraftEntity) entity).getHandle(), new net.minecraft.world.phys.Vec3(vector.getX(), vector.getY(), vector.getZ())));
+            return null;
+        });
     }
 
     @Override
@@ -66,12 +79,15 @@ public abstract class AbstractProjectile extends CraftEntity implements Projecti
 
     @Override
     public final void setShooter(org.bukkit.projectiles.ProjectileSource shooter) {
-        if (shooter instanceof CraftEntity craftEntity) {
-            this.getHandle().setOwner(craftEntity.getHandle());
-        } else {
-            this.getHandle().setOwner(null);
-        }
-        this.getHandle().projectileSource = shooter;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (shooter instanceof CraftEntity craftEntity) {
+                this.getHandle().setOwner(craftEntity.getHandle());
+            } else {
+                this.getHandle().setOwner(null);
+            }
+            this.getHandle().projectileSource = shooter;
+            return null;
+        });
     }
 
     @Override

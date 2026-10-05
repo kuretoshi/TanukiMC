@@ -26,8 +26,8 @@ public class I18nOverrides {
 
     private static final String TEMPLATE = """
             # ===================================================
-            # Youer i18n overrides
-            # Override or add translation keys for the built-in Youer i18n.
+            # TanukiMC i18n overrides
+            # Override or add translation keys for the built-in TanukiMC i18n.
             #
             # Syntax is the same as Java .properties files:
             #   key=value
@@ -50,7 +50,7 @@ public class I18nOverrides {
         }
         try {
             if (!DIR.isDirectory() && !DIR.mkdirs()) {
-                Youer.LOGGER.warn("[Youer] Failed to create lang directory: {}", DIR);
+                Youer.LOGGER.warn("[TanukiMC] Failed to create lang directory: {}", DIR);
                 return;
             }
             if (!FILE.isFile()) {

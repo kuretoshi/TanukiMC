@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.core.Holder;
@@ -45,7 +46,10 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setDuration(int duration) {
-        this.getHandle().setDuration(duration);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setDuration(duration);
+            return null;
+        });
     }
 
     @Override
@@ -55,7 +59,10 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setWaitTime(int waitTime) {
-        this.getHandle().setWaitTime(waitTime);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setWaitTime(waitTime);
+            return null;
+        });
     }
 
     @Override
@@ -65,7 +72,10 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setReapplicationDelay(int delay) {
-        this.getHandle().reapplicationDelay = delay;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().reapplicationDelay = delay;
+            return null;
+        });
     }
 
     @Override
@@ -75,7 +85,10 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setDurationOnUse(int duration) {
-        this.getHandle().durationOnUse = duration;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().durationOnUse = duration;
+            return null;
+        });
     }
 
     @Override
@@ -85,7 +98,10 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setRadius(float radius) {
-        this.getHandle().setRadius(radius);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setRadius(radius);
+            return null;
+        });
     }
 
     @Override
@@ -95,7 +111,10 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setRadiusOnUse(float radius) {
-        this.getHandle().setRadiusOnUse(radius);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setRadiusOnUse(radius);
+            return null;
+        });
     }
 
     @Override
@@ -105,7 +124,10 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setRadiusPerTick(float radius) {
-        this.getHandle().setRadiusPerTick(radius);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setRadiusPerTick(radius);
+            return null;
+        });
     }
 
     @Override
@@ -120,7 +142,10 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public <T> void setParticle(Particle particle, T data) {
-        this.getHandle().setParticle(CraftParticle.createParticleParam(particle, data));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setParticle(CraftParticle.createParticleParam(particle, data));
+            return null;
+        });
     }
 
     @Override
@@ -130,28 +155,36 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setColor(Color color) {
-        PotionContents old = this.getHandle().potionContents;
-        this.getHandle().setPotionContents(new PotionContents(old.potion(), Optional.of(color.asRGB()), old.customEffects()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            PotionContents old = this.getHandle().potionContents;
+            this.getHandle().setPotionContents(new PotionContents(old.potion(), Optional.of(color.asRGB()), old.customEffects()));
+            return null;
+        });
     }
 
     @Override
     public boolean addCustomEffect(PotionEffect effect, boolean override) {
-        if (this.hasCustomEffect(effect.getType())) {
-            if (!override) {
-                return false;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (this.hasCustomEffect(effect.getType())) {
+                if (!override) {
+                    return false;
+                }
+                this.removeCustomEffect(effect.getType());
             }
-            this.removeCustomEffect(effect.getType());
-        }
-        this.getHandle().addEffect(CraftPotionUtil.fromBukkit(effect));
-        // this.getHandle().updateColor(); // Paper - already done above
-        return true;
+            this.getHandle().addEffect(CraftPotionUtil.fromBukkit(effect));
+            // this.getHandle().updateColor(); // Paper - already done above
+            return true;
+        });
     }
 
     @Override
     public void clearCustomEffects() {
-        PotionContents old = this.getHandle().potionContents;
-        this.getHandle().setPotionContents(new PotionContents(old.potion(), old.customColor(), List.of()));
-        // this.getHandle().updateColor(); // Paper - already done above
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            PotionContents old = this.getHandle().potionContents;
+            this.getHandle().setPotionContents(new PotionContents(old.potion(), old.customColor(), List.of()));
+            // this.getHandle().updateColor(); // Paper - already done above
+            return null;
+        });
     }
 
     @Override
@@ -180,14 +213,16 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public boolean removeCustomEffect(PotionEffectType effect) {
-        if (!this.hasCustomEffect(effect)) {
-            return false;
-        }
-        Holder<MobEffect> minecraft = CraftPotionEffectType.bukkitToMinecraftHolder(effect);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (!this.hasCustomEffect(effect)) {
+                return false;
+            }
+            Holder<MobEffect> minecraft = CraftPotionEffectType.bukkitToMinecraftHolder(effect);
 
-        PotionContents old = this.getHandle().potionContents;
-        this.getHandle().setPotionContents(new PotionContents(old.potion(), old.customColor(), old.customEffects().stream().filter((mobEffect) -> !mobEffect.getEffect().equals(minecraft)).toList()));
-        return true;
+            PotionContents old = this.getHandle().potionContents;
+            this.getHandle().setPotionContents(new PotionContents(old.potion(), old.customColor(), old.customEffects().stream().filter((mobEffect) -> !mobEffect.getEffect().equals(minecraft)).toList()));
+            return true;
+        });
     }
 
     @Override
@@ -202,12 +237,15 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setBasePotionType(PotionType potionType) {
-        if (potionType != null) {
-            this.getHandle().setPotionContents(this.getHandle().potionContents.withPotion(CraftPotionType.bukkitToMinecraftHolder(potionType)));
-        } else {
-            PotionContents old = this.getHandle().potionContents;
-            this.getHandle().setPotionContents(new PotionContents(Optional.empty(), old.customColor(), old.customEffects()));
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (potionType != null) {
+                this.getHandle().setPotionContents(this.getHandle().potionContents.withPotion(CraftPotionType.bukkitToMinecraftHolder(potionType)));
+            } else {
+                PotionContents old = this.getHandle().potionContents;
+                this.getHandle().setPotionContents(new PotionContents(Optional.empty(), old.customColor(), old.customEffects()));
+            }
+            return null;
+        });
     }
 
     @Override
@@ -223,11 +261,14 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setSource(ProjectileSource shooter) {
-        if (shooter instanceof CraftLivingEntity craftLivingEntity) {
-            this.getHandle().setOwner(craftLivingEntity.getHandle());
-        } else {
-            this.getHandle().setOwner(null);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (shooter instanceof CraftLivingEntity craftLivingEntity) {
+                this.getHandle().setOwner(craftLivingEntity.getHandle());
+            } else {
+                this.getHandle().setOwner(null);
+            }
+            return null;
+        });
     }
 
     // Paper start - owner API
@@ -238,8 +279,11 @@ public class CraftAreaEffectCloud extends CraftEntity implements AreaEffectCloud
 
     @Override
     public void setOwnerUniqueId(final java.util.UUID ownerUuid) {
-        this.getHandle().setOwner(null);
-        this.getHandle().ownerUUID = ownerUuid;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setOwner(null);
+            this.getHandle().ownerUUID = ownerUuid;
+            return null;
+        });
     }
     // Paper end
 }

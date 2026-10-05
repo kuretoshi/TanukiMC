@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.scoreboard;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.scores.Scoreboard;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.craftbukkit.util.CraftChatMessage;
@@ -39,11 +40,12 @@ final class CraftObjective extends CraftScoreboardComponent implements Objective
     }
     @Override
     public void displayName(net.kyori.adventure.text.Component displayName) throws IllegalStateException, IllegalArgumentException {
-        if (displayName == null) {
-            displayName = net.kyori.adventure.text.Component.empty();
-        }
-        CraftScoreboard scoreboard = checkState();
-        objective.setDisplayName(io.papermc.paper.adventure.PaperAdventure.asVanilla(displayName));
+        net.kyori.adventure.text.Component finalDisplayName = displayName == null ? net.kyori.adventure.text.Component.empty() : displayName;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftScoreboard scoreboard = checkState();
+            objective.setDisplayName(io.papermc.paper.adventure.PaperAdventure.asVanilla(finalDisplayName));
+            return null;
+        });
     }
     // Paper end
     @Override
@@ -55,10 +57,13 @@ final class CraftObjective extends CraftScoreboardComponent implements Objective
 
     @Override
     public void setDisplayName(String displayName) {
-        Preconditions.checkArgument(displayName != null, "Display name cannot be null");
-        this.checkState();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(displayName != null, "Display name cannot be null");
+            this.checkState();
 
-        this.objective.setDisplayName(CraftChatMessage.fromString(displayName)[0]); // SPIGOT-4112: not nullable
+            this.objective.setDisplayName(CraftChatMessage.fromString(displayName)[0]); // SPIGOT-4112: not nullable
+            return null;
+        });
     }
 
     @Override
@@ -84,19 +89,22 @@ final class CraftObjective extends CraftScoreboardComponent implements Objective
 
     @Override
     public void setDisplaySlot(DisplaySlot slot) {
-        CraftScoreboard scoreboard = this.checkState();
-        Scoreboard board = scoreboard.board;
-        net.minecraft.world.scores.Objective objective = this.objective;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftScoreboard scoreboard = this.checkState();
+            Scoreboard board = scoreboard.board;
+            net.minecraft.world.scores.Objective objective = this.objective;
 
-        for (net.minecraft.world.scores.DisplaySlot i : net.minecraft.world.scores.DisplaySlot.values()) {
-            if (board.getDisplayObjective(i) == objective) {
-                board.setDisplayObjective(i, null);
+            for (net.minecraft.world.scores.DisplaySlot i : net.minecraft.world.scores.DisplaySlot.values()) {
+                if (board.getDisplayObjective(i) == objective) {
+                    board.setDisplayObjective(i, null);
+                }
             }
-        }
-        if (slot != null) {
-            net.minecraft.world.scores.DisplaySlot slotNumber = CraftScoreboardTranslations.fromBukkitSlot(slot);
-            board.setDisplayObjective(slotNumber, this.getHandle());
-        }
+            if (slot != null) {
+                net.minecraft.world.scores.DisplaySlot slotNumber = CraftScoreboardTranslations.fromBukkitSlot(slot);
+                board.setDisplayObjective(slotNumber, this.getHandle());
+            }
+            return null;
+        });
     }
 
     @Override
@@ -115,10 +123,13 @@ final class CraftObjective extends CraftScoreboardComponent implements Objective
 
     @Override
     public void setRenderType(RenderType renderType) {
-        Preconditions.checkArgument(renderType != null, "RenderType cannot be null");
-        this.checkState();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(renderType != null, "RenderType cannot be null");
+            this.checkState();
 
-        this.objective.setRenderType(CraftScoreboardTranslations.fromBukkitRender(renderType));
+            this.objective.setRenderType(CraftScoreboardTranslations.fromBukkitRender(renderType));
+            return null;
+        });
     }
 
     @Override
@@ -170,22 +181,28 @@ final class CraftObjective extends CraftScoreboardComponent implements Objective
 
     @Override
     public void numberFormat(io.papermc.paper.scoreboard.numbers.NumberFormat format) {
-        this.checkState();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.checkState();
 
-        if (format == null) {
-            this.objective.setNumberFormat(null);
-            return;
-        }
+            if (format == null) {
+                this.objective.setNumberFormat(null);
+                return null;
+            }
 
-        this.objective.setNumberFormat(io.papermc.paper.util.PaperScoreboardFormat.asVanilla(format));
+            this.objective.setNumberFormat(io.papermc.paper.util.PaperScoreboardFormat.asVanilla(format));
+            return null;
+        });
     }
     // Paper end - add number format
 
     @Override
     public void unregister() {
-        CraftScoreboard scoreboard = this.checkState();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftScoreboard scoreboard = this.checkState();
 
-        scoreboard.board.removeObjective(this.objective);
+            scoreboard.board.removeObjective(this.objective);
+            return null;
+        });
     }
 
     @Override
@@ -223,8 +240,11 @@ final class CraftObjective extends CraftScoreboardComponent implements Objective
 
     @Override
     public void setAutoUpdateDisplay(final boolean autoUpdateDisplay) {
-        this.checkState();
-        this.objective.setDisplayAutoUpdate(autoUpdateDisplay);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.checkState();
+            this.objective.setDisplayAutoUpdate(autoUpdateDisplay);
+            return null;
+        });
     }
     // Paper end - add more score API
 }

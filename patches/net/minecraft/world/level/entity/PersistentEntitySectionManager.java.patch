@@ -1,15 +1,16 @@
 --- a/net/minecraft/world/level/entity/PersistentEntitySectionManager.java
 +++ b/net/minecraft/world/level/entity/PersistentEntitySectionManager.java
-@@ -3,6 +_,8 @@
+@@ -2,7 +_,8 @@
+ 
  import com.google.common.collect.ImmutableList;
  import com.google.common.collect.Queues;
- import com.google.common.collect.Sets;
+-import com.google.common.collect.Sets;
 +import com.mohistmc.youer.feature.ban.bans.BanEntity;
 +import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
-@@ -27,7 +_,11 @@
+@@ -27,17 +_,21 @@
  import net.minecraft.util.VisibleForDebug;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.level.ChunkPos;
@@ -21,6 +22,18 @@
  
  public class PersistentEntitySectionManager<T extends EntityAccess> implements AutoCloseable {
      static final Logger LOGGER = LogUtils.getLogger();
+-    final Set<UUID> knownUuids = Sets.newHashSet();
++    final Set<UUID> knownUuids = java.util.concurrent.ConcurrentHashMap.newKeySet();
+     final LevelCallback<T> callbacks;
+     public final EntityPersistentStorage<T> permanentStorage;
+     private final EntityLookup<T> visibleEntityStorage;
+     final EntitySectionStorage<T> sectionStorage;
+     private final LevelEntityGetter<T> entityGetter;
+-    private final Long2ObjectMap<Visibility> chunkVisibility = new Long2ObjectOpenHashMap<>();
++    private final Long2ObjectMap<Visibility> chunkVisibility = Long2ObjectMaps.synchronize(new Long2ObjectOpenHashMap<>());
+     private final Long2ObjectMap<PersistentEntitySectionManager.ChunkLoadStatus> chunkLoadStatuses = new Long2ObjectOpenHashMap<>();
+     private final LongSet chunksToUnload = new LongOpenHashSet();
+     private final Queue<ChunkEntities<T>> loadingInbox = Queues.newConcurrentLinkedQueue();
 @@ -52,6 +_,16 @@
          this.entityGetter = new LevelEntityGetterAdapter<>(this.visibleEntityStorage, this.sectionStorage);
      }
@@ -122,7 +135,7 @@
          if (!flag) {
              return false;
          } else {
-@@ -217,6 +_,7 @@
+@@ -217,19 +_,32 @@
      }
  
      private void unloadEntity(EntityAccess p_157586_) {
@@ -130,7 +143,14 @@
          p_157586_.setRemoved(Entity.RemovalReason.UNLOADED_TO_CHUNK);
          p_157586_.setLevelCallback(EntityInLevelCallback.NULL);
      }
-@@ -228,8 +_,18 @@
+ 
+     private void processUnloads() {
+-        this.chunksToUnload.removeIf(p_157584_ -> this.chunkVisibility.get(p_157584_) != Visibility.HIDDEN ? true : this.processChunkUnload(p_157584_));
++        synchronized (this.chunksToUnload) {
++            this.chunksToUnload.removeIf(p_157584_ -> this.chunkVisibility.get(p_157584_) != Visibility.HIDDEN ? true : this.processChunkUnload(p_157584_));
++        }
+     }
+ 
      private void processPendingLoads() {
          ChunkEntities<T> chunkentities;
          while ((chunkentities = this.loadingInbox.poll()) != null) {

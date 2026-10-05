@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Bat;
 
@@ -25,7 +26,10 @@ public class CraftBat extends CraftAmbient implements Bat {
 
     @Override
     public void setAwake(boolean state) {
-        this.getHandle().setResting(!state);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setResting(!state);
+            return null;
+        });
     }
     // Paper start
     @Override
@@ -40,12 +44,15 @@ public class CraftBat extends CraftAmbient implements Bat {
 
     @Override
     public void setTargetLocation(org.bukkit.Location location) {
-        net.minecraft.core.BlockPos pos = null;
-        if (location != null) {
-            pos = io.papermc.paper.util.MCUtil.toBlockPosition(location);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            net.minecraft.core.BlockPos pos = null;
+            if (location != null) {
+                pos = io.papermc.paper.util.MCUtil.toBlockPosition(location);
+            }
 
-        this.getHandle().targetPosition = pos;
+            this.getHandle().targetPosition = pos;
+            return null;
+        });
     }
     // Paper end
 }

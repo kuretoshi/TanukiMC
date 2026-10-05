@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Rabbit;
 
@@ -26,12 +27,18 @@ public class CraftRabbit extends CraftAnimals implements Rabbit {
 
     @Override
     public void setRabbitType(Type type) {
-        this.getHandle().setVariant(net.minecraft.world.entity.animal.Rabbit.Variant.values()[type.ordinal()]);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setVariant(net.minecraft.world.entity.animal.Rabbit.Variant.values()[type.ordinal()]);
+            return null;
+        });
     }
     // Paper start
     @Override
     public void setMoreCarrotTicks(int ticks) {
-        this.getHandle().moreCarrotTicks = ticks;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().moreCarrotTicks = ticks;
+            return null;
+        });
     }
 
     @Override

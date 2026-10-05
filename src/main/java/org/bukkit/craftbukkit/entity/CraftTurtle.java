@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Turtle;
 
@@ -37,7 +38,10 @@ public class CraftTurtle extends CraftAnimals implements Turtle {
 
     @Override
     public void setHome(org.bukkit.Location location) {
-        this.getHandle().setHomePos(io.papermc.paper.util.MCUtil.toBlockPosition(location));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setHomePos(io.papermc.paper.util.MCUtil.toBlockPosition(location));
+            return null;
+        });
     }
 
     @Override
@@ -52,7 +56,10 @@ public class CraftTurtle extends CraftAnimals implements Turtle {
 
     @Override
     public void setHasEgg(boolean hasEgg) {
-        this.getHandle().setHasEgg(hasEgg);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setHasEgg(hasEgg);
+            return null;
+        });
     }
     // Paper end
 }

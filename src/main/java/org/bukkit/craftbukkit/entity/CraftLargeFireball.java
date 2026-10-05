@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.LargeFireball;
 
@@ -10,8 +11,11 @@ public class CraftLargeFireball extends CraftSizedFireball implements LargeFireb
 
     @Override
     public void setYield(float yield) {
-        super.setYield(yield);
-        this.getHandle().explosionPower = (int) yield;
+        ThreadedServer.withWorldMutationLock(() -> {
+            super.setYield(yield);
+            this.getHandle().explosionPower = (int) yield;
+            return null;
+        });
     }
 
     @Override

@@ -1,0 +1,86 @@
+--- a/net/minecraft/world/level/entity/EntitySection.java
++++ b/net/minecraft/world/level/entity/EntitySection.java
+@@ -2,6 +_,7 @@
+ 
+ import com.mojang.logging.LogUtils;
+ import java.util.Collection;
++import java.util.List;
+ import java.util.stream.Stream;
+ import net.minecraft.util.AbortableIterationConsumer;
+ import net.minecraft.util.ClassInstanceMultiMap;
+@@ -12,23 +_,27 @@
+ public class EntitySection<T extends EntityAccess> {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final ClassInstanceMultiMap<T> storage;
+-    private Visibility chunkStatus;
++    private volatile Visibility chunkStatus;
+ 
+     public EntitySection(Class<T> p_156831_, Visibility p_156832_) {
+         this.chunkStatus = p_156832_;
+         this.storage = new ClassInstanceMultiMap<>(p_156831_);
+     }
+ 
+-    public void add(T p_188347_) {
++    public synchronized void add(T p_188347_) {
+         this.storage.add(p_188347_);
+     }
+ 
+-    public boolean remove(T p_188356_) {
++    public synchronized boolean remove(T p_188356_) {
+         return this.storage.remove(p_188356_);
+     }
+ 
+     public AbortableIterationConsumer.Continuation getEntities(AABB p_262016_, AbortableIterationConsumer<T> p_261863_) {
+-        for (T t : this.storage) {
++        List<T> entities;
++        synchronized (this) {
++            entities = List.copyOf(this.storage);
++        }
++        for (T t : entities) {
+             if (t.getBoundingBox().intersects(p_262016_) && p_261863_.accept(t).shouldAbort()) {
+                 return AbortableIterationConsumer.Continuation.ABORT;
+             }
+@@ -40,7 +_,10 @@
+     public <U extends T> AbortableIterationConsumer.Continuation getEntities(
+         EntityTypeTest<T, U> p_188349_, AABB p_188350_, AbortableIterationConsumer<? super U> p_261535_
+     ) {
+-        Collection<? extends T> collection = this.storage.find(p_188349_.getBaseClass());
++        Collection<? extends T> collection;
++        synchronized (this) {
++            collection = List.copyOf(this.storage.find(p_188349_.getBaseClass()));
++        }
+         if (collection.isEmpty()) {
+             return AbortableIterationConsumer.Continuation.CONTINUE;
+         } else {
+@@ -55,26 +_,26 @@
+         }
+     }
+ 
+-    public boolean isEmpty() {
++    public synchronized boolean isEmpty() {
+         return this.storage.isEmpty();
+     }
+ 
+-    public Stream<T> getEntities() {
+-        return this.storage.stream();
++    public synchronized Stream<T> getEntities() {
++        return List.copyOf(this.storage).stream();
+     }
+ 
+     public Visibility getStatus() {
+         return this.chunkStatus;
+     }
+ 
+-    public Visibility updateChunkStatus(Visibility p_156839_) {
++    public synchronized Visibility updateChunkStatus(Visibility p_156839_) {
+         Visibility visibility = this.chunkStatus;
+         this.chunkStatus = p_156839_;
+         return visibility;
+     }
+ 
+     @VisibleForDebug
+-    public int size() {
++    public synchronized int size() {
+         return this.storage.size();
+     }
+ }

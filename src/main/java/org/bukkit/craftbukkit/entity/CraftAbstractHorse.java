@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.UUID;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import org.bukkit.craftbukkit.CraftServer;
@@ -33,8 +34,11 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setDomestication(int value) {
-        Preconditions.checkArgument(value >= 0 && value <= this.getMaxDomestication(), "Domestication level (%s) need to be between %s and %s (max domestication)", value, 0, this.getMaxDomestication());
-        this.getHandle().setTemper(value);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(value >= 0 && value <= this.getMaxDomestication(), "Domestication level (%s) need to be between %s and %s (max domestication)", value, 0, this.getMaxDomestication());
+            this.getHandle().setTemper(value);
+            return null;
+        });
     }
 
     @Override
@@ -44,8 +48,11 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setMaxDomestication(int value) {
-        Preconditions.checkArgument(value > 0, "Max domestication (%s) cannot be zero or less", value);
-        this.getHandle().maxDomestication = value;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(value > 0, "Max domestication (%s) cannot be zero or less", value);
+            this.getHandle().maxDomestication = value;
+            return null;
+        });
     }
 
     @Override
@@ -55,8 +62,11 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setJumpStrength(double strength) {
-        Preconditions.checkArgument(strength >= 0, "Jump strength (%s) cannot be less than zero", strength);
-        this.getHandle().getAttribute(Attributes.JUMP_STRENGTH).setBaseValue(strength);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(strength >= 0, "Jump strength (%s) cannot be less than zero", strength);
+            this.getHandle().getAttribute(Attributes.JUMP_STRENGTH).setBaseValue(strength);
+            return null;
+        });
     }
 
     @Override
@@ -66,7 +76,10 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setTamed(boolean tamed) {
-        this.getHandle().setTamed(tamed);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setTamed(tamed);
+            return null;
+        });
     }
 
     @Override
@@ -77,15 +90,18 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setOwner(AnimalTamer owner) {
-        if (owner != null) {
-            this.setTamed(true);
-            this.getHandle().setTargetReason(null, false);
-            this.getHandle().setTarget(null);
-            this.setOwnerUUID(owner.getUniqueId());
-        } else {
-            this.setTamed(false);
-            this.setOwnerUUID(null);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (owner != null) {
+                this.setTamed(true);
+                this.getHandle().setTargetReason(null, false);
+                this.getHandle().setTarget(null);
+                this.setOwnerUUID(owner.getUniqueId());
+            } else {
+                this.setTamed(false);
+                this.setOwnerUUID(null);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -98,7 +114,10 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
     }
 
     public void setOwnerUUID(UUID uuid) {
-        this.getHandle().setOwnerUUID(uuid);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setOwnerUUID(uuid);
+            return null;
+        });
     }
 
     @Override
@@ -108,7 +127,10 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setEatingHaystack(boolean eatingHaystack) {
-        this.getHandle().setEating(eatingHaystack);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setEating(eatingHaystack);
+            return null;
+        });
     }
 
     @Override
@@ -124,7 +146,10 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setEatingGrass(boolean eating) {
-        this.getHandle().setEating(eating);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setEating(eating);
+            return null;
+        });
     }
 
     @Override
@@ -134,7 +159,10 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setRearing(boolean rearing) {
-        this.getHandle().setForceStanding(rearing);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setForceStanding(rearing);
+            return null;
+        });
     }
 
     @Override
@@ -144,7 +172,10 @@ public abstract class CraftAbstractHorse extends CraftAnimals implements Abstrac
 
     @Override
     public void setEating(boolean eating) {
-        this.getHandle().setMouthOpen(eating);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setMouthOpen(eating);
+            return null;
+        });
     }
     // Paper end - Horse API
 }

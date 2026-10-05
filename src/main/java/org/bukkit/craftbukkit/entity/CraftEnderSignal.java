@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.projectile.EyeOfEnder;
 import net.minecraft.world.item.Items;
 import org.bukkit.Location;
@@ -38,9 +39,12 @@ public class CraftEnderSignal extends CraftEntity implements EnderSignal {
 
     @Override
     public void setTargetLocation(Location location, boolean update) {
-        // Paper end - Change EnderEye target without changing other things
-        Preconditions.checkArgument(this.getWorld().equals(location.getWorld()), "Cannot target EnderSignal across worlds");
-        this.getHandle().signalTo(CraftLocation.toBlockPosition(location), update); // Paper - Change EnderEye target without changing other things
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            // Paper end - Change EnderEye target without changing other things
+            Preconditions.checkArgument(this.getWorld().equals(location.getWorld()), "Cannot target EnderSignal across worlds");
+            this.getHandle().signalTo(CraftLocation.toBlockPosition(location), update); // Paper - Change EnderEye target without changing other things
+            return null;
+        });
     }
 
     @Override
@@ -50,7 +54,10 @@ public class CraftEnderSignal extends CraftEntity implements EnderSignal {
 
     @Override
     public void setDropItem(boolean shouldDropItem) {
-        this.getHandle().surviveAfterDeath = shouldDropItem;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().surviveAfterDeath = shouldDropItem;
+            return null;
+        });
     }
 
     @Override
@@ -60,7 +67,10 @@ public class CraftEnderSignal extends CraftEntity implements EnderSignal {
 
     @Override
     public void setItem(ItemStack item) {
-        this.getHandle().setItem(item != null ? CraftItemStack.asNMSCopy(item) : Items.ENDER_EYE.getDefaultInstance());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setItem(item != null ? CraftItemStack.asNMSCopy(item) : Items.ENDER_EYE.getDefaultInstance());
+            return null;
+        });
     }
 
     @Override
@@ -70,6 +80,9 @@ public class CraftEnderSignal extends CraftEntity implements EnderSignal {
 
     @Override
     public void setDespawnTimer(int time) {
-        this.getHandle().life = time;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().life = time;
+            return null;
+        });
     }
 }

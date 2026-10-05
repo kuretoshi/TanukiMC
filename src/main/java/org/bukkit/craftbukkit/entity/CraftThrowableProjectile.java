@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -23,7 +24,10 @@ public abstract class CraftThrowableProjectile extends CraftProjectile implement
 
     @Override
     public void setItem(ItemStack item) {
-        this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
+            return null;
+        });
     }
 
     @Override

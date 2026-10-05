@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -62,12 +63,15 @@ public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inven
 
     @Override
     public void setItem(int slot, ItemStack item) {
-        net.minecraft.world.item.ItemStack stack = CraftItemStack.asNMSCopy(item);
-        if (slot >= 0) {
-            this.container.getSlot(slot).set(stack);
-        } else {
-            this.player.getHandle().drop(stack, false);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            net.minecraft.world.item.ItemStack stack = CraftItemStack.asNMSCopy(item);
+            if (slot >= 0) {
+                this.container.getSlot(slot).set(stack);
+            } else {
+                this.player.getHandle().drop(stack, false);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -97,8 +101,11 @@ public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inven
 
     @Override
     public void setTitle(String title) {
-        CraftInventoryView.sendInventoryTitleChange(this, title);
-        this.title = title;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftInventoryView.sendInventoryTitleChange(this, title);
+            this.title = title;
+            return null;
+        });
     }
 
     public boolean isInTop(int rawSlot) {
@@ -110,15 +117,18 @@ public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inven
     }
 
     public static void sendInventoryTitleChange(InventoryView view, String title) {
-        Preconditions.checkArgument(view != null, "InventoryView cannot be null");
-        Preconditions.checkArgument(title != null, "Title cannot be null");
-        Preconditions.checkArgument(view.getPlayer() instanceof Player, "NPCs are not currently supported for this function");
-        Preconditions.checkArgument(view.getTopInventory().getType().isCreatable(), "Only creatable inventories can have their title changed");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(view != null, "InventoryView cannot be null");
+            Preconditions.checkArgument(title != null, "Title cannot be null");
+            Preconditions.checkArgument(view.getPlayer() instanceof Player, "NPCs are not currently supported for this function");
+            Preconditions.checkArgument(view.getTopInventory().getType().isCreatable(), "Only creatable inventories can have their title changed");
 
-        final ServerPlayer entityPlayer = (ServerPlayer) ((CraftHumanEntity) view.getPlayer()).getHandle();
-        final int containerId = entityPlayer.containerMenu.containerId;
-        final MenuType<?> windowType = CraftContainer.getNotchInventoryType(view.getTopInventory());
-        entityPlayer.connection.send(new ClientboundOpenScreenPacket(containerId, windowType, CraftChatMessage.fromString(title)[0]));
-        ((Player) view.getPlayer()).updateInventory();
+            final ServerPlayer entityPlayer = (ServerPlayer) ((CraftHumanEntity) view.getPlayer()).getHandle();
+            final int containerId = entityPlayer.containerMenu.containerId;
+            final MenuType<?> windowType = CraftContainer.getNotchInventoryType(view.getTopInventory());
+            entityPlayer.connection.send(new ClientboundOpenScreenPacket(containerId, windowType, CraftChatMessage.fromString(title)[0]));
+            ((Player) view.getPlayer()).updateInventory();
+            return null;
+        });
     }
 }

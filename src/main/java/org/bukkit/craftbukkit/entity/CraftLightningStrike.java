@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LightningBolt;
 import org.bukkit.craftbukkit.CraftServer;
@@ -21,7 +22,10 @@ public class CraftLightningStrike extends CraftEntity implements LightningStrike
     }
 
     public void setFlashes(int flashes) {
-        this.getHandle().flashes = flashes;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().flashes = flashes;
+            return null;
+        });
     }
 
     public int getLifeTicks() {
@@ -29,7 +33,10 @@ public class CraftLightningStrike extends CraftEntity implements LightningStrike
     }
 
     public void setLifeTicks(int ticks) {
-        this.getHandle().life = ticks;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().life = ticks;
+            return null;
+        });
     }
 
     public Player getCausingPlayer() {
@@ -38,7 +45,10 @@ public class CraftLightningStrike extends CraftEntity implements LightningStrike
     }
 
     public void setCausingPlayer(Player player) {
-        this.getHandle().setCause((player != null) ? ((CraftPlayer) player).getHandle() : null);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCause((player != null) ? ((CraftPlayer) player).getHandle() : null);
+            return null;
+        });
     }
 
     @Override
@@ -75,8 +85,11 @@ public class CraftLightningStrike extends CraftEntity implements LightningStrike
 
     @Override
     public void setFlashCount(int flashes) {
-        com.google.common.base.Preconditions.checkArgument(flashes >= 0, "Flashes has to be a positive number!");
-        getHandle().flashes = flashes;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            com.google.common.base.Preconditions.checkArgument(flashes >= 0, "Flashes has to be a positive number!");
+            getHandle().flashes = flashes;
+            return null;
+        });
     }
 
     @Override

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.scoreboard;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.scores.ReadOnlyScoreInfo;
 import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.Scoreboard;
@@ -52,7 +53,10 @@ final class CraftScore implements Score {
 
     @Override
     public void setScore(int score) {
-        this.objective.checkState().board.getOrCreatePlayerScore(this.entry, this.objective.getHandle()).set(score);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.objective.checkState().board.getOrCreatePlayerScore(this.entry, this.objective.getHandle()).set(score);
+            return null;
+        });
     }
 
     // Paper start - add number format
@@ -77,15 +81,18 @@ final class CraftScore implements Score {
 
     @Override
     public void numberFormat(io.papermc.paper.scoreboard.numbers.NumberFormat format) {
-        final net.minecraft.world.scores.ScoreAccess access = this.objective.checkState()
-                .board.getOrCreatePlayerScore(this.entry, this.objective.getHandle());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            final net.minecraft.world.scores.ScoreAccess access = this.objective.checkState()
+                    .board.getOrCreatePlayerScore(this.entry, this.objective.getHandle());
 
-        if (format == null) {
-            access.numberFormatOverride(null);
-            return;
-        }
+            if (format == null) {
+                access.numberFormatOverride(null);
+                return null;
+            }
 
-        access.numberFormatOverride(io.papermc.paper.util.PaperScoreboardFormat.asVanilla(format));
+            access.numberFormatOverride(io.papermc.paper.util.PaperScoreboardFormat.asVanilla(format));
+            return null;
+        });
     }
     // Paper end - add number format
 
@@ -104,8 +111,11 @@ final class CraftScore implements Score {
     // Paper start
     @Override
     public void resetScore() {
-        Scoreboard board = this.objective.checkState().board;
-        board.resetSinglePlayerScore(entry, this.objective.getHandle());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Scoreboard board = this.objective.checkState().board;
+            board.resetSinglePlayerScore(entry, this.objective.getHandle());
+            return null;
+        });
     }
     // Paper end
 
@@ -122,13 +132,16 @@ final class CraftScore implements Score {
 
     @Override
     public void setTriggerable(final boolean triggerable) {
-        com.google.common.base.Preconditions.checkArgument(this.objective.getTrackedCriteria() == org.bukkit.scoreboard.Criteria.TRIGGER, "the criteria isn't 'trigger'");
-        final Scoreboard board = this.objective.checkState().board;
-        if (triggerable) {
-            board.getOrCreatePlayerScore(this.entry, this.objective.getHandle()).unlock();
-        } else {
-            board.getOrCreatePlayerScore(this.entry, this.objective.getHandle()).lock();
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            com.google.common.base.Preconditions.checkArgument(this.objective.getTrackedCriteria() == org.bukkit.scoreboard.Criteria.TRIGGER, "the criteria isn't 'trigger'");
+            final Scoreboard board = this.objective.checkState().board;
+            if (triggerable) {
+                board.getOrCreatePlayerScore(this.entry, this.objective.getHandle()).unlock();
+            } else {
+                board.getOrCreatePlayerScore(this.entry, this.objective.getHandle()).lock();
+            }
+            return null;
+        });
     }
 
     @Override
@@ -144,8 +157,11 @@ final class CraftScore implements Score {
 
     @Override
     public void customName(final net.kyori.adventure.text.Component customName) {
-        final Scoreboard board = this.objective.checkState().board;
-        board.getOrCreatePlayerScore(this.entry, this.objective.getHandle()).display(io.papermc.paper.adventure.PaperAdventure.asVanilla(customName));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            final Scoreboard board = this.objective.checkState().board;
+            board.getOrCreatePlayerScore(this.entry, this.objective.getHandle()).display(io.papermc.paper.adventure.PaperAdventure.asVanilla(customName));
+            return null;
+        });
     }
     // Paper end - add more score API
 }

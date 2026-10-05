@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.animal.Pufferfish;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.PufferFish;
@@ -22,7 +23,10 @@ public class CraftPufferFish extends CraftFish implements PufferFish {
 
     @Override
     public void setPuffState(int state) {
-        this.getHandle().setPuffState(state);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setPuffState(state);
+            return null;
+        });
     }
 
     @Override

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Set;
 import net.minecraft.world.entity.vehicle.MinecartCommandBlock;
 import org.bukkit.Bukkit;
@@ -32,13 +33,19 @@ public class CraftMinecartCommand extends CraftMinecart implements CommandMineca
 
     @Override
     public void setCommand(String command) {
-        this.getHandle().getCommandBlock().setCommand(command != null ? command : "");
-        this.getHandle().getEntityData().set(MinecartCommandBlock.DATA_ID_COMMAND_NAME, this.getHandle().getCommandBlock().getCommand());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().getCommandBlock().setCommand(command != null ? command : "");
+            this.getHandle().getEntityData().set(MinecartCommandBlock.DATA_ID_COMMAND_NAME, this.getHandle().getCommandBlock().getCommand());
+            return null;
+        });
     }
 
     @Override
     public void setName(String name) {
-        this.getHandle().getCommandBlock().setCustomName(CraftChatMessage.fromStringOrNull(name));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().getCommandBlock().setCustomName(CraftChatMessage.fromStringOrNull(name));
+            return null;
+        });
     }
 
     @Override
@@ -72,8 +79,11 @@ public class CraftMinecartCommand extends CraftMinecart implements CommandMineca
 
     @Override
     public void lastOutput(net.kyori.adventure.text.Component lastOutput) {
-        io.papermc.paper.commands.PaperCommandBlockHolder.super.lastOutput(lastOutput);
-        getCommandBlockHandle().onUpdated();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            io.papermc.paper.commands.PaperCommandBlockHolder.super.lastOutput(lastOutput);
+            getCommandBlockHandle().onUpdated();
+            return null;
+        });
     }
     // Paper end
 

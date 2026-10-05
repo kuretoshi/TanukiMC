@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.entity;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.mohistmc.youer.api.ServerAPI;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Set;
 import net.minecraft.world.entity.boss.EnderDragonPart;
 import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
@@ -47,7 +48,10 @@ public class CraftEnderDragon extends CraftMob implements EnderDragon, CraftEnem
 
     @Override
     public void setPhase(Phase phase) {
-        this.getHandle().getPhaseManager().setPhase(CraftEnderDragon.getMinecraftPhase(phase));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().getPhaseManager().setPhase(CraftEnderDragon.getMinecraftPhase(phase));
+            return null;
+        });
     }
 
     public static Phase getBukkitPhase(EnderDragonPhase phase) {
@@ -86,12 +90,15 @@ public class CraftEnderDragon extends CraftMob implements EnderDragon, CraftEnem
 
     @Override
     public void setPodium(org.bukkit.Location location) {
-        if (location == null) {
-            this.getHandle().setPodium(null);
-        } else {
-            org.apache.commons.lang.Validate.isTrue(location.getWorld() == null || location.getWorld().equals(getWorld()), "You cannot set a podium in a different world to where the dragon is");
-            this.getHandle().setPodium(io.papermc.paper.util.MCUtil.toBlockPos(location));
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (location == null) {
+                this.getHandle().setPodium(null);
+            } else {
+                org.apache.commons.lang.Validate.isTrue(location.getWorld() == null || location.getWorld().equals(getWorld()), "You cannot set a podium in a different world to where the dragon is");
+                this.getHandle().setPodium(io.papermc.paper.util.MCUtil.toBlockPos(location));
+            }
+            return null;
+        });
     }
     // Paper end - Allow changing the EnderDragon podium
 }

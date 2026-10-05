@@ -47,6 +47,10 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
         return new YouerDerivedWorldInfo(worldInfo, gameRules, worldSettings(worldInfo), generatorSettings(worldInfo), specialWorldProperty(worldInfo), lifecycle(worldInfo));
     }
 
+    public static YouerDerivedWorldInfo create(ServerLevelData worldInfo) {
+        return create(worldInfo, worldInfo.getGameRules().copy());
+    }
+
     // Youer - per-dimension game rules: start from a copy of the main world's rules, then restore
     // the rules persisted in the dimension's own level.dat (written by saveDimensionDataTag) if present.
     public static GameRules loadDimensionGameRules(MinecraftServer server, LevelStorageSource.LevelStorageAccess storage, ResourceKey<Level> dimension) {

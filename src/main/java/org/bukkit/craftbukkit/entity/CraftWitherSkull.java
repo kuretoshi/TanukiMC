@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.WitherSkull;
 
@@ -10,7 +11,10 @@ public class CraftWitherSkull extends CraftFireball implements WitherSkull {
 
     @Override
     public void setCharged(boolean charged) {
-        this.getHandle().setDangerous(charged);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setDangerous(charged);
+            return null;
+        });
     }
 
     @Override

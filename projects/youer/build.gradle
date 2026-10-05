@@ -28,6 +28,38 @@ sourceSets {
             srcDirs rootProject.file('src/main/resources'), rootProject.file('src/generated/resources')
         }
     }
+    threadingSmoke {
+        java.srcDir rootProject.file('tests/threading/src')
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    }
+}
+
+tasks.register('threadingSmokePluginJar', Jar) {
+    archiveBaseName = 'threading-phase-plugin'
+    manifest.attributes('paperweight-mappings-namespace': 'mojang')
+    from(sourceSets.threadingSmoke.output) { include 'test/youer/plugin/**' }
+    from(rootProject.file('tests/threading/plugin.yml'))
+}
+
+tasks.register('threadingSmokeModJar', Jar) {
+    archiveBaseName = 'threading-phase-mod'
+    from(sourceSets.threadingSmoke.output) { include 'test/youer/mod/**' }
+    from(rootProject.file('tests/threading/neoforge.mods.toml')) { into 'META-INF' }
+}
+
+tasks.register('threadingSmokeClientModJar', Jar) {
+    archiveBaseName = 'threading-phase-client-mod'
+    from(sourceSets.threadingSmoke.output) { include 'test/youer/client/**' }
+    from(rootProject.file('tests/threading/neoforge.mods.toml')) { into 'META-INF' }
+}
+
+tasks.register('threadingTopologyTest', JavaExec) {
+    group = 'verification'
+    classpath = sourceSets.threadingSmoke.runtimeClasspath + sourceSets.main.runtimeClasspath
+    mainClass = 'test.youer.TopologyProbe'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(java_version)
+    }
 }
 
 final checkVersion = JCCPlugin.providePreviousVersion(
@@ -444,10 +476,10 @@ def installerDeps = {
 
 dependencies installerDeps
 
-task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project(':youerlauncher').tasks.jar]) {
+task youerJar(type: Jar, dependsOn: [verifySourcePatches, youerJar0, downloadMultipleFiles, project(':youerlauncher').tasks.jar]) {
     archiveClassifier = 'server'
     archiveExtension = 'jar'
-    archiveBaseName = 'youer'
+    archiveBaseName = 'TanukiMC'
     archiveVersion = '1.21.1-' + gradleutils.gitInfo.abbreviatedId
     destinationDirectory = file('build/libs')
 
@@ -458,9 +490,9 @@ task youerJar(type: Jar, dependsOn: [youerJar0, downloadMultipleFiles, project('
                 'Main-Class': 'com.mohistmc.launcher.youer.Main'
         ])
         attributes([
-                'Specification-Title'   : 'Youer',
+                'Specification-Title'   : 'TanukiMC',
                 'Specification-Vendor'  : 'MohistMC',
-                'Implementation-Title'  : 'Youer',
+                'Implementation-Title'  : 'TanukiMC',
                 'Implementation-Version': archiveVersion,
                 'Implementation-Vendor' : 'MohistMC'
         ] as LinkedHashMap, 'com/mohistmc/launcher/youer/')

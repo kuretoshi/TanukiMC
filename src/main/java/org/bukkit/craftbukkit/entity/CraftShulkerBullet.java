@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.ShulkerBullet;
 
@@ -21,7 +22,10 @@ public class CraftShulkerBullet extends AbstractProjectile implements ShulkerBul
     public void setTarget(org.bukkit.entity.Entity target) {
         Preconditions.checkState(!this.getHandle().generation, "Cannot set target during world generation");
 
-        this.getHandle().setTarget(target == null ? null : ((CraftEntity) target).getHandle());
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setTarget(target == null ? null : ((CraftEntity) target).getHandle());
+            return null;
+        });
     }
 
     @Override
@@ -32,10 +36,13 @@ public class CraftShulkerBullet extends AbstractProjectile implements ShulkerBul
 
     @Override
     public void setTargetDelta(org.bukkit.util.Vector vector) {
-        net.minecraft.world.entity.projectile.ShulkerBullet bullet = this.getHandle();
-        bullet.targetDeltaX = vector.getX();
-        bullet.targetDeltaY = vector.getY();
-        bullet.targetDeltaZ = vector.getZ();
+        ThreadedServer.withWorldMutationLock(() -> {
+            net.minecraft.world.entity.projectile.ShulkerBullet bullet = this.getHandle();
+            bullet.targetDeltaX = vector.getX();
+            bullet.targetDeltaY = vector.getY();
+            bullet.targetDeltaZ = vector.getZ();
+            return null;
+        });
     }
 
     @Override
@@ -49,7 +56,10 @@ public class CraftShulkerBullet extends AbstractProjectile implements ShulkerBul
 
     @Override
     public void setCurrentMovementDirection(org.bukkit.block.BlockFace movementDirection) {
-        this.getHandle().currentMoveDirection = org.bukkit.craftbukkit.block.CraftBlock.blockFaceToNotch(movementDirection);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().currentMoveDirection = org.bukkit.craftbukkit.block.CraftBlock.blockFaceToNotch(movementDirection);
+            return null;
+        });
     }
 
     @Override
@@ -59,7 +69,10 @@ public class CraftShulkerBullet extends AbstractProjectile implements ShulkerBul
 
     @Override
     public void setFlightSteps(int steps) {
-        this.getHandle().flightSteps = steps;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().flightSteps = steps;
+            return null;
+        });
     }
 
     @Override

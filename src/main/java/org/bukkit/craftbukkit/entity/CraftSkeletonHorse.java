@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Horse.Variant;
 import org.bukkit.entity.SkeletonHorse;
@@ -32,7 +33,10 @@ public class CraftSkeletonHorse extends CraftAbstractHorse implements SkeletonHo
 
     @Override
     public void setTrapped(boolean trapped) {
-        this.getHandle().setTrap(trapped);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setTrap(trapped);
+            return null;
+        });
     }
 
     @Override
@@ -42,7 +46,10 @@ public class CraftSkeletonHorse extends CraftAbstractHorse implements SkeletonHo
 
     @Override
     public void setTrapTime(int trapTime) {
-        this.getHandle().trapTime = trapTime;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().trapTime = trapTime;
+            return null;
+        });
     }
 
     // Paper start - replaced by above methods
@@ -53,7 +60,10 @@ public class CraftSkeletonHorse extends CraftAbstractHorse implements SkeletonHo
 
     @Override
     public void setTrap(boolean trap) {
-        getHandle().setTrap(trap);
+        ThreadedServer.withWorldMutationLock(() -> {
+            getHandle().setTrap(trap);
+            return null;
+        });
     }
     // Paper end
 }

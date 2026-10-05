@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Pig;
@@ -18,7 +19,10 @@ public class CraftPig extends CraftAnimals implements Pig {
 
     @Override
     public void setSaddle(boolean saddled) {
-        this.getHandle().steering.setSaddle(saddled);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().steering.setSaddle(saddled);
+            return null;
+        });
     }
 
     @Override
@@ -30,7 +34,10 @@ public class CraftPig extends CraftAnimals implements Pig {
     public void setBoostTicks(int ticks) {
         Preconditions.checkArgument(ticks >= 0, "ticks must be >= 0");
 
-        this.getHandle().steering.setBoostTicks(ticks);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().steering.setBoostTicks(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -40,14 +47,17 @@ public class CraftPig extends CraftAnimals implements Pig {
 
     @Override
     public void setCurrentBoostTicks(int ticks) {
-        if (!this.getHandle().steering.boosting) {
-            return;
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (!this.getHandle().steering.boosting) {
+                return null;
+            }
 
-        int max = this.getHandle().steering.boostTimeTotal();
-        Preconditions.checkArgument(ticks >= 0 && ticks <= max, "boost ticks must not exceed 0 or %d (inclusive)", max);
+            int max = this.getHandle().steering.boostTimeTotal();
+            Preconditions.checkArgument(ticks >= 0 && ticks <= max, "boost ticks must not exceed 0 or %d (inclusive)", max);
 
-        this.getHandle().steering.boostTime = ticks;
+            this.getHandle().steering.boostTime = ticks;
+            return null;
+        });
     }
 
     @Override

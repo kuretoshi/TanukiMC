@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.PiglinAbstract;
@@ -18,7 +19,10 @@ public class CraftPiglinAbstract extends CraftMonster implements PiglinAbstract 
 
     @Override
     public void setImmuneToZombification(boolean flag) {
-        this.getHandle().setImmuneToZombification(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setImmuneToZombification(flag);
+            return null;
+        });
     }
 
     @Override
@@ -29,12 +33,15 @@ public class CraftPiglinAbstract extends CraftMonster implements PiglinAbstract 
 
     @Override
     public void setConversionTime(int time) {
-        if (time < 0) {
-            this.getHandle().timeInOverworld = -1;
-            this.getHandle().setImmuneToZombification(false);
-        } else {
-            this.getHandle().timeInOverworld = time;
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (time < 0) {
+                this.getHandle().timeInOverworld = -1;
+                this.getHandle().setImmuneToZombification(false);
+            } else {
+                this.getHandle().timeInOverworld = time;
+            }
+            return null;
+        });
     }
 
     @Override
@@ -49,7 +56,10 @@ public class CraftPiglinAbstract extends CraftMonster implements PiglinAbstract 
 
     @Override
     public void setBaby(boolean flag) {
-        this.getHandle().setBaby(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(flag);
+            return null;
+        });
     }
 
     @Override
@@ -59,7 +69,10 @@ public class CraftPiglinAbstract extends CraftMonster implements PiglinAbstract 
 
     @Override
     public void setAge(int i) {
-        this.getHandle().setBaby(i < 0);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(i < 0);
+            return null;
+        });
     }
 
     @Override
@@ -73,12 +86,18 @@ public class CraftPiglinAbstract extends CraftMonster implements PiglinAbstract 
 
     @Override
     public void setBaby() {
-        this.getHandle().setBaby(true);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(true);
+            return null;
+        });
     }
 
     @Override
     public void setAdult() {
-        this.getHandle().setBaby(false);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(false);
+            return null;
+        });
     }
 
     @Override

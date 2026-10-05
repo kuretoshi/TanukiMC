@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Endermite;
 
@@ -31,7 +32,10 @@ public class CraftEndermite extends CraftMonster implements Endermite {
     // Paper start
     @Override
     public void setLifetimeTicks(int ticks) {
-        this.getHandle().life = ticks;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().life = ticks;
+            return null;
+        });
     }
 
     @Override

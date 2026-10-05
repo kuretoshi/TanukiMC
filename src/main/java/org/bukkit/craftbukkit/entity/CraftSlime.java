@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Slime;
 
@@ -16,7 +17,10 @@ public class CraftSlime extends CraftMob implements Slime, CraftEnemy {
 
     @Override
     public void setSize(int size) {
-        this.getHandle().setSize(size, getHandle().isAlive()); // Paper - fix dead slime setSize invincibility
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setSize(size, getHandle().isAlive()); // Paper - fix dead slime setSize invincibility
+            return null;
+        });
     }
 
     @Override
@@ -37,7 +41,10 @@ public class CraftSlime extends CraftMob implements Slime, CraftEnemy {
 
     @Override
     public void setWander(boolean canWander) {
-        getHandle().setWander(canWander);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setWander(canWander);
+            return null;
+        });
     }
     // Paper end
 }

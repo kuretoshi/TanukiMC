@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.SpectralArrow;
 
@@ -26,6 +27,9 @@ public class CraftSpectralArrow extends CraftAbstractArrow implements SpectralAr
 
     @Override
     public void setGlowingTicks(int duration) {
-        this.getHandle().duration = duration;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().duration = duration;
+            return null;
+        });
     }
 }

@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Guardian;
 import org.bukkit.entity.LivingEntity;
@@ -25,28 +26,33 @@ public class CraftGuardian extends CraftMonster implements Guardian {
 
     @Override
     public void setTarget(LivingEntity target) {
-        super.setTarget(target);
+        ThreadedServer.withWorldMutationLock(() -> {
+            super.setTarget(target);
 
-        // clean up laser target, when target is removed
-        if (target == null) {
-            this.getHandle().setActiveAttackTarget(0);
-        }
+            // clean up laser target, when target is removed
+            if (target == null) {
+                this.getHandle().setActiveAttackTarget(0);
+            }
+            return null;
+        });
     }
 
     @Override
     public boolean setLaser(boolean activated) {
-        if (activated) {
-            LivingEntity target = this.getTarget();
-            if (target == null) {
-                return false;
+        return ThreadedServer.withWorldMutationLock(() -> {
+            if (activated) {
+                LivingEntity target = this.getTarget();
+                if (target == null) {
+                    return false;
+                }
+
+                this.getHandle().setActiveAttackTarget(target.getEntityId());
+            } else {
+                this.getHandle().setActiveAttackTarget(0);
             }
 
-            this.getHandle().setActiveAttackTarget(target.getEntityId());
-        } else {
-            this.getHandle().setActiveAttackTarget(0);
-        }
-
-        return true;
+            return true;
+        });
     }
 
     @Override
@@ -65,7 +71,10 @@ public class CraftGuardian extends CraftMonster implements Guardian {
 
         net.minecraft.world.entity.monster.Guardian.GuardianAttackGoal goal = this.getHandle().guardianAttackGoal;
         if (goal != null) {
-            goal.attackTime = ticks;
+            ThreadedServer.withWorldMutationLock(() -> {
+                goal.attackTime = ticks;
+                return null;
+            });
         }
     }
 

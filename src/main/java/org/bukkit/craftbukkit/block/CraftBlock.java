@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.neoforge.compat.SableCompat;
 import java.util.ArrayList;
@@ -163,7 +164,10 @@ public class CraftBlock implements Block {
     }
 
     private void setData(final byte data, int flag) {
-        this.world.setBlock(this.position, CraftMagicNumbers.getBlock(this.getType(), data), flag);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.world.setBlock(this.position, CraftMagicNumbers.getBlock(this.getType(), data), flag);
+            return null;
+        });
     }
 
     @Override
@@ -204,6 +208,12 @@ public class CraftBlock implements Block {
     }
 
     public static boolean setTypeAndData(LevelAccessor world, BlockPos position, net.minecraft.world.level.block.state.BlockState old, net.minecraft.world.level.block.state.BlockState blockData, boolean applyPhysics) {
+        return ThreadedServer.withWorldMutationLock(() -> ThreadedServer.onMainThreadIfRegionThread(
+                () -> CraftBlock.setTypeAndDataUnlocked(world, position, old, blockData, applyPhysics)
+        ));
+    }
+
+    private static boolean setTypeAndDataUnlocked(LevelAccessor world, BlockPos position, net.minecraft.world.level.block.state.BlockState old, net.minecraft.world.level.block.state.BlockState blockData, boolean applyPhysics) {
         // SPIGOT-611: need to do this to prevent glitchiness. Easier to handle this here (like /setblock) than to fix weirdness in tile entity cleanup
         if (old.hasBlockEntity() && blockData.getBlock() != old.getBlock()) { // SPIGOT-3725 remove old tile entity if block changes
             // SPIGOT-4612: faster - just clear tile
@@ -337,13 +347,13 @@ public class CraftBlock implements Block {
 
     @Override
     public BlockState getState() {
-        return CraftBlockStates.getBlockState(this);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> CraftBlockStates.getBlockState(this));
     }
 
     // Paper start
     @Override
     public BlockState getState(boolean useSnapshot) {
-        return CraftBlockStates.getBlockState(this, useSnapshot);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> CraftBlockStates.getBlockState(this, useSnapshot));
     }
     // Paper end
 

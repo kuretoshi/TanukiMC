@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Goat;
 
@@ -26,7 +27,10 @@ public class CraftGoat extends CraftAnimals implements Goat {
 
     @Override
     public void setLeftHorn(boolean hasHorn) {
-        this.getHandle().getEntityData().set(net.minecraft.world.entity.animal.goat.Goat.DATA_HAS_LEFT_HORN, hasHorn);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().getEntityData().set(net.minecraft.world.entity.animal.goat.Goat.DATA_HAS_LEFT_HORN, hasHorn);
+            return null;
+        });
     }
 
     @Override
@@ -36,7 +40,10 @@ public class CraftGoat extends CraftAnimals implements Goat {
 
     @Override
     public void setRightHorn(boolean hasHorn) {
-        this.getHandle().getEntityData().set(net.minecraft.world.entity.animal.goat.Goat.DATA_HAS_RIGHT_HORN, hasHorn);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().getEntityData().set(net.minecraft.world.entity.animal.goat.Goat.DATA_HAS_RIGHT_HORN, hasHorn);
+            return null;
+        });
     }
 
     @Override
@@ -46,13 +53,19 @@ public class CraftGoat extends CraftAnimals implements Goat {
 
     @Override
     public void setScreaming(boolean screaming) {
-        this.getHandle().setScreamingGoat(screaming);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setScreamingGoat(screaming);
+            return null;
+        });
     }
 
     // Paper start - Goat ram API
     @Override
     public void ram(@org.jetbrains.annotations.NotNull org.bukkit.entity.LivingEntity entity) {
-        this.getHandle().ram(((CraftLivingEntity) entity).getHandle());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().ram(((CraftLivingEntity) entity).getHandle());
+            return null;
+        });
     }
     // Paper end
 }

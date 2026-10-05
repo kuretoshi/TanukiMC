@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Ghast;
 
@@ -26,7 +27,10 @@ public class CraftGhast extends CraftFlying implements Ghast, CraftEnemy {
 
     @Override
     public void setCharging(boolean flag) {
-        this.getHandle().setCharging(flag);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setCharging(flag);
+            return null;
+        });
     }
 
     // Paper start
@@ -38,7 +42,10 @@ public class CraftGhast extends CraftFlying implements Ghast, CraftEnemy {
     @Override
     public void setExplosionPower(int explosionPower) {
         com.google.common.base.Preconditions.checkArgument(explosionPower >= 0 && explosionPower <= 127, "The explosion power has to be between 0 and 127");
-        this.getHandle().setExplosionPower(explosionPower);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setExplosionPower(explosionPower);
+            return null;
+        });
     }
     // Paper end
 }

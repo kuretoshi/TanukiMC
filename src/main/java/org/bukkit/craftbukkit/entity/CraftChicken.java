@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Chicken;
 
@@ -27,7 +28,10 @@ public class CraftChicken extends CraftAnimals implements Chicken {
 
     @Override
     public void setIsChickenJockey(boolean isChickenJockey) {
-        this.getHandle().setChickenJockey(isChickenJockey);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setChickenJockey(isChickenJockey);
+            return null;
+        });
     }
 
     @Override
@@ -37,7 +41,10 @@ public class CraftChicken extends CraftAnimals implements Chicken {
 
     @Override
     public void setEggLayTime(int eggLayTime) {
-        this.getHandle().eggTime = eggLayTime;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().eggTime = eggLayTime;
+            return null;
+        });
     }
     // Paper end
 }

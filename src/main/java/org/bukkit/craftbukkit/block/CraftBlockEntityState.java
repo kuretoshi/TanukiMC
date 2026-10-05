@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.block;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Set;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentMap;
@@ -184,18 +185,20 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
 
     @Override
     public boolean update(boolean force, boolean applyPhysics) {
-        boolean result = super.update(force, applyPhysics);
+        return ThreadedServer.withWorldMutationLock(() -> {
+            boolean result = super.update(force, applyPhysics);
 
-        if (result && this.isPlaced()) {
-            BlockEntity tile = this.getTileEntityFromWorld();
+            if (result && this.isPlaced()) {
+                BlockEntity tile = this.getTileEntityFromWorld();
 
-            if (this.isApplicable(tile)) {
-                this.applyTo((T) tile);
-                tile.setChanged();
+                if (this.isApplicable(tile)) {
+                    this.applyTo((T) tile);
+                    tile.setChanged();
+                }
             }
-        }
 
-        return result;
+            return result;
+        });
     }
 
     @Override

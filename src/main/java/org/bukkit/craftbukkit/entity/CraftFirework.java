@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Random;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.item.ItemStack;
@@ -39,26 +40,31 @@ public class CraftFirework extends CraftProjectile implements Firework {
 
     @Override
     public void setFireworkMeta(FireworkMeta meta) {
-        applyFireworkEffect(meta); // Paper - Expose firework item directly
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            applyFireworkEffect(meta); // Paper - Expose firework item directly
 
-        // Copied from EntityFireworks constructor, update firework lifetime/power
-        this.getHandle().lifetime = 10 * (1 + meta.getPower()) + this.random.nextInt(6) + this.random.nextInt(7);
+            // Copied from EntityFireworks constructor, update firework lifetime/power
+            this.getHandle().lifetime = 10 * (1 + meta.getPower()) + this.random.nextInt(6) + this.random.nextInt(7);
 
-        this.getHandle().getEntityData().markDirty(FireworkRocketEntity.DATA_ID_FIREWORKS_ITEM);
+            this.getHandle().getEntityData().markDirty(FireworkRocketEntity.DATA_ID_FIREWORKS_ITEM);
+            return null;
+        });
     }
 
     @Override
     public boolean setAttachedTo(LivingEntity entity) {
-        if (this.isDetonated()) {
-            return false;
-        }
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (this.isDetonated()) {
+                return false;
+            }
 
-        this.getHandle().attachedToEntity = (entity != null) ? ((CraftLivingEntity) entity).getHandle() : null;
-        // Paper start - update entity data
-        this.getHandle().getEntityData().set(FireworkRocketEntity.DATA_ATTACHED_TO_TARGET,
-                entity != null ? java.util.OptionalInt.of(entity.getEntityId()) : java.util.OptionalInt.empty());
-        // Paper end - update entity data
-        return true;
+            this.getHandle().attachedToEntity = (entity != null) ? ((CraftLivingEntity) entity).getHandle() : null;
+            // Paper start - update entity data
+            this.getHandle().getEntityData().set(FireworkRocketEntity.DATA_ATTACHED_TO_TARGET,
+                    entity != null ? java.util.OptionalInt.of(entity.getEntityId()) : java.util.OptionalInt.empty());
+            // Paper end - update entity data
+            return true;
+        });
     }
 
     @Override
@@ -69,14 +75,16 @@ public class CraftFirework extends CraftProjectile implements Firework {
 
     @Override
     public boolean setLife(int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "ticks must be greater than or equal to 0");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "ticks must be greater than or equal to 0");
 
-        if (this.isDetonated()) {
-            return false;
-        }
+            if (this.isDetonated()) {
+                return false;
+            }
 
-        this.getHandle().life = ticks;
-        return true;
+            this.getHandle().life = ticks;
+            return true;
+        });
     }
 
     @Override
@@ -86,14 +94,16 @@ public class CraftFirework extends CraftProjectile implements Firework {
 
     @Override
     public boolean setMaxLife(int ticks) {
-        Preconditions.checkArgument(ticks > 0, "ticks must be greater than 0");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks > 0, "ticks must be greater than 0");
 
-        if (this.isDetonated()) {
-            return false;
-        }
+            if (this.isDetonated()) {
+                return false;
+            }
 
-        this.getHandle().lifetime = ticks;
-        return true;
+            this.getHandle().lifetime = ticks;
+            return true;
+        });
     }
 
     @Override
@@ -103,7 +113,10 @@ public class CraftFirework extends CraftProjectile implements Firework {
 
     @Override
     public void detonate() {
-        this.setLife(this.getMaxLife() + 1);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.setLife(this.getMaxLife() + 1);
+            return null;
+        });
     }
 
     @Override
@@ -118,7 +131,10 @@ public class CraftFirework extends CraftProjectile implements Firework {
 
     @Override
     public void setShotAtAngle(boolean shotAtAngle) {
-        this.getHandle().getEntityData().set(FireworkRocketEntity.DATA_SHOT_AT_ANGLE, shotAtAngle);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().getEntityData().set(FireworkRocketEntity.DATA_SHOT_AT_ANGLE, shotAtAngle);
+            return null;
+        });
     }
 
     // Paper start
@@ -135,11 +151,14 @@ public class CraftFirework extends CraftProjectile implements Firework {
 
     @Override
     public void setItem(org.bukkit.inventory.ItemStack itemStack) {
-        FireworkMeta meta = getFireworkMeta();
-        ItemStack nmsItem = itemStack == null ? FireworkRocketEntity.getDefaultItem() : CraftItemStack.asNMSCopy(itemStack);
-        this.getHandle().getEntityData().set(FireworkRocketEntity.DATA_ID_FIREWORKS_ITEM, nmsItem);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            FireworkMeta meta = getFireworkMeta();
+            ItemStack nmsItem = itemStack == null ? FireworkRocketEntity.getDefaultItem() : CraftItemStack.asNMSCopy(itemStack);
+            this.getHandle().getEntityData().set(FireworkRocketEntity.DATA_ID_FIREWORKS_ITEM, nmsItem);
 
-        applyFireworkEffect(meta);
+            applyFireworkEffect(meta);
+            return null;
+        });
     }
 
     @Override
@@ -149,7 +168,10 @@ public class CraftFirework extends CraftProjectile implements Firework {
 
     @Override
     public void setTicksFlown(int ticks) {
-        this.getHandle().life = ticks;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().life = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -159,7 +181,10 @@ public class CraftFirework extends CraftProjectile implements Firework {
 
     @Override
     public void setTicksToDetonate(int ticks) {
-        this.getHandle().lifetime = ticks;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().lifetime = ticks;
+            return null;
+        });
     }
 
     void applyFireworkEffect(FireworkMeta meta) {

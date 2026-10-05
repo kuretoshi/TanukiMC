@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
 import org.bukkit.block.BlockFace;
 import org.bukkit.craftbukkit.CraftServer;
@@ -15,7 +16,7 @@ public class CraftLeash extends CraftBlockAttachedEntity implements LeashHitch {
     public boolean setFacingDirection(BlockFace face, boolean force) {
         Preconditions.checkArgument(face == BlockFace.SELF, "%s is not a valid facing direction", face);
 
-        return force || this.getHandle().generation || this.getHandle().survives();
+        return ThreadedServer.withWorldMutationLock(() -> force || this.getHandle().generation || this.getHandle().survives());
     }
 
     @Override

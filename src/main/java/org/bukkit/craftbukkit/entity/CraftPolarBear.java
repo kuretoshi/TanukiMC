@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.PolarBear;
 
@@ -26,7 +27,10 @@ public class CraftPolarBear extends CraftAnimals implements PolarBear {
 
     @Override
     public void setStanding(boolean standing) {
-        this.getHandle().setStanding(standing);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setStanding(standing);
+            return null;
+        });
     }
     // Paper end
 }

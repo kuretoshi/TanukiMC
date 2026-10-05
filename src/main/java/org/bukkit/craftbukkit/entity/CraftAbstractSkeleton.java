@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.destroystokyo.paper.entity.CraftRangedEntity;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.AbstractSkeleton;
 import org.bukkit.entity.Skeleton;
@@ -31,7 +32,10 @@ public abstract class CraftAbstractSkeleton extends CraftMonster implements Abst
 
     @Override
     public void setShouldBurnInDay(boolean shouldBurnInDay) {
-        getHandle().setShouldBurnInDay(shouldBurnInDay);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setShouldBurnInDay(shouldBurnInDay);
+            return null;
+        });
     }
     // Paper end
 }

@@ -1,0 +1,125 @@
+--- a/net/minecraft/world/level/entity/EntitySectionStorage.java
++++ b/net/minecraft/world/level/entity/EntitySectionStorage.java
+@@ -9,11 +_,10 @@
+ import it.unimi.dsi.fastutil.longs.LongSet;
+ import it.unimi.dsi.fastutil.longs.LongSortedSet;
+ import java.util.Objects;
+-import java.util.Spliterators;
+-import java.util.PrimitiveIterator.OfLong;
++import java.util.ArrayList;
++import java.util.List;
+ import java.util.stream.LongStream;
+ import java.util.stream.Stream;
+-import java.util.stream.StreamSupport;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.util.AbortableIterationConsumer;
+@@ -41,37 +_,39 @@
+         int j1 = SectionPos.posToSectionCoord(p_188363_.maxY + 0.0);
+         int k1 = SectionPos.posToSectionCoord(p_188363_.maxZ + 2.0);
+ 
+-        for (int l1 = j; l1 <= i1; l1++) {
+-            long i2 = SectionPos.asLong(l1, 0, 0);
+-            long j2 = SectionPos.asLong(l1, -1, -1);
+-            LongIterator longiterator = this.sectionIds.subSet(i2, j2 + 1L).iterator();
++        List<EntitySection<T>> candidates = new ArrayList<>();
++        synchronized (this) {
++            for (int l1 = j; l1 <= i1; l1++) {
++                long i2 = SectionPos.asLong(l1, 0, 0);
++                long j2 = SectionPos.asLong(l1, -1, -1);
++                LongIterator longiterator = this.sectionIds.subSet(i2, j2 + 1L).iterator();
+ 
+-            while (longiterator.hasNext()) {
+-                long k2 = longiterator.nextLong();
+-                int l2 = SectionPos.y(k2);
+-                int i3 = SectionPos.z(k2);
+-                if (l2 >= k && l2 <= j1 && i3 >= l && i3 <= k1) {
+-                    EntitySection<T> entitysection = this.sections.get(k2);
+-                    if (entitysection != null
+-                        && !entitysection.isEmpty()
+-                        && entitysection.getStatus().isAccessible()
+-                        && p_261588_.accept(entitysection).shouldAbort()) {
+-                        return;
++                while (longiterator.hasNext()) {
++                    long k2 = longiterator.nextLong();
++                    int l2 = SectionPos.y(k2);
++                    int i3 = SectionPos.z(k2);
++                    if (l2 >= k && l2 <= j1 && i3 >= l && i3 <= k1) {
++                        EntitySection<T> entitysection = this.sections.get(k2);
++                        if (entitysection != null) {
++                            candidates.add(entitysection);
++                        }
+                     }
+                 }
+             }
+         }
++        for (EntitySection<T> entitysection : candidates) {
++            if (!entitysection.isEmpty() && entitysection.getStatus().isAccessible()
++                && p_261588_.accept(entitysection).shouldAbort()) {
++                return;
++            }
++        }
+     }
+ 
+     public LongStream getExistingSectionPositionsInChunk(long p_156862_) {
+         int i = ChunkPos.getX(p_156862_);
+         int j = ChunkPos.getZ(p_156862_);
+-        LongSortedSet longsortedset = this.getChunkSections(i, j);
+-        if (longsortedset.isEmpty()) {
+-            return LongStream.empty();
+-        } else {
+-            OfLong oflong = longsortedset.iterator();
+-            return StreamSupport.longStream(Spliterators.spliteratorUnknownSize(oflong, 1301), false);
++        synchronized (this) {
++            return LongStream.of(this.getChunkSections(i, j).toLongArray());
+         }
+     }
+ 
+@@ -82,19 +_,19 @@
+     }
+ 
+     public Stream<EntitySection<T>> getExistingSectionsInChunk(long p_156889_) {
+-        return this.getExistingSectionPositionsInChunk(p_156889_).mapToObj(this.sections::get).filter(Objects::nonNull);
++        return this.getExistingSectionPositionsInChunk(p_156889_).mapToObj(this::getSection).filter(Objects::nonNull);
+     }
+ 
+     private static long getChunkKeyFromSectionKey(long p_156900_) {
+         return ChunkPos.asLong(SectionPos.x(p_156900_), SectionPos.z(p_156900_));
+     }
+ 
+-    public EntitySection<T> getOrCreateSection(long p_156894_) {
++    public synchronized EntitySection<T> getOrCreateSection(long p_156894_) {
+         return this.sections.computeIfAbsent(p_156894_, this::createSection);
+     }
+ 
+     @Nullable
+-    public EntitySection<T> getSection(long p_156896_) {
++    public synchronized EntitySection<T> getSection(long p_156896_) {
+         return this.sections.get(p_156896_);
+     }
+ 
+@@ -105,7 +_,7 @@
+         return new EntitySection<>(this.entityClass, visibility);
+     }
+ 
+-    public LongSet getAllChunksWithExistingSections() {
++    public synchronized LongSet getAllChunksWithExistingSections() {
+         LongSet longset = new LongOpenHashSet();
+         this.sections.keySet().forEach(p_156886_ -> longset.add(getChunkKeyFromSectionKey(p_156886_)));
+         return longset;
+@@ -119,13 +_,13 @@
+         this.forEachAccessibleNonEmptySection(p_261843_, p_261463_ -> p_261463_.getEntities(p_261630_, p_261843_, p_261742_));
+     }
+ 
+-    public void remove(long p_156898_) {
++    public synchronized void remove(long p_156898_) {
+         this.sections.remove(p_156898_);
+         this.sectionIds.remove(p_156898_);
+     }
+ 
+     @VisibleForDebug
+-    public int count() {
++    public synchronized int count() {
+         return this.sectionIds.size();
+     }
+ }

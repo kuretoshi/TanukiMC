@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
@@ -39,9 +40,12 @@ public final class CraftRaid implements Raid {
 
     @Override
     public void setBadOmenLevel(int badOmenLevel) {
-        int max = this.handle.getMaxRaidOmenLevel();
-        Preconditions.checkArgument(0 <= badOmenLevel && badOmenLevel <= max, "Bad Omen level must be between 0 and %s", max);
-        this.handle.raidOmenLevel = badOmenLevel;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            int max = this.handle.getMaxRaidOmenLevel();
+            Preconditions.checkArgument(0 <= badOmenLevel && badOmenLevel <= max, "Bad Omen level must be between 0 and %s", max);
+            this.handle.raidOmenLevel = badOmenLevel;
+            return null;
+        });
     }
 
     @Override

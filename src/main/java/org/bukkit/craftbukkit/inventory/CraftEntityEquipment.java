@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.Mob;
 import org.bukkit.craftbukkit.CraftEquipmentSlot;
 import org.bukkit.craftbukkit.entity.CraftLivingEntity;
@@ -160,14 +161,20 @@ public class CraftEntityEquipment implements EntityEquipment {
     }
 
     private void setEquipment(net.minecraft.world.entity.EquipmentSlot slot, ItemStack stack, boolean silent) {
-        this.entity.getHandle().setItemSlot(slot, CraftItemStack.asNMSCopy(stack), silent);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.entity.getHandle().setItemSlot(slot, CraftItemStack.asNMSCopy(stack), silent);
+            return null;
+        });
     }
 
     @Override
     public void clear() {
-        for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) {
-            this.setEquipment(slot, null, false);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            for (net.minecraft.world.entity.EquipmentSlot slot : net.minecraft.world.entity.EquipmentSlot.values()) {
+                this.setEquipment(slot, null, false);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -258,9 +265,12 @@ public class CraftEntityEquipment implements EntityEquipment {
     // Paper end
 
     private void setDropChance(net.minecraft.world.entity.EquipmentSlot slot, float chance) {
-        Preconditions.checkArgument(this.entity.getHandle() instanceof Mob, "Cannot set drop chance for non-Mob entity");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(this.entity.getHandle() instanceof Mob, "Cannot set drop chance for non-Mob entity");
 
-        ((Mob) this.entity.getHandle()).setDropChance(slot, chance); // Paper - use setter on Mob
+            ((Mob) this.entity.getHandle()).setDropChance(slot, chance); // Paper - use setter on Mob
+            return null;
+        });
     }
 
     private float getDropChance(net.minecraft.world.entity.EquipmentSlot slot) {

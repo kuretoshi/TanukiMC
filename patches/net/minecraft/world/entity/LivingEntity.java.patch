@@ -501,15 +501,21 @@
          return d0;
      }
  
-@@ -891,20 +_,43 @@
+@@ -891,20 +_,52 @@
          this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
      }
  
 +    private final AtomicReference<EntityPotionEffectEvent.Cause> removeAllEffects$cause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
 +    public void removeAllEffects$cause(EntityPotionEffectEvent.Cause cause) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        removeAllEffects$cause.set(cause);
 +    }
      public boolean removeAllEffects() {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
          if (this.level().isClientSide) {
              return false;
          } else {
@@ -534,19 +540,23 @@
              }
  
              return flag;
+-        }
 +            } catch (ConcurrentModificationException e) {
 +                return false;
 +            }
-         }
++        }
 +    }
 +
 +    public boolean removeAllEffects(EntityPotionEffectEvent.Cause cause) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        removeAllEffects$cause(cause);
 +        return removeAllEffects();
      }
  
      public Collection<MobEffectInstance> getActiveEffects() {
-@@ -925,22 +_,64 @@
+@@ -925,22 +_,73 @@
      }
  
      public final boolean addEffect(MobEffectInstance p_21165_) {
@@ -564,15 +574,24 @@
 +    private final AtomicBoolean addEffect$fireEvent = new AtomicBoolean(true);
 +
 +    public void AddEffect$fireEvent(boolean value) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        this.addEffect$fireEvent.set(value);
 +    }
 +
 +    public void addEffectCause(EntityPotionEffectEvent.Cause cause) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        this.addEffect$Cause.set(cause);
      }
  
      public boolean addEffect(MobEffectInstance p_147208_, @Nullable Entity p_147209_) {
 -        if (!this.canBeAffected(p_147208_)) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        // Youer start - ban effects at the lowest level, before any event machinery
 +        if (com.mohistmc.youer.feature.ban.bans.BanEffect.check(p_147208_.getEffect())) {
 +            return false;
@@ -614,7 +633,7 @@
                  flag = true;
              }
  
-@@ -949,6 +_,26 @@
+@@ -949,6 +_,29 @@
          }
      }
  
@@ -624,6 +643,9 @@
 +    }
 +
 +    public boolean addEffect(MobEffectInstance pEffectInstance, @Nullable Entity pEntity, EntityPotionEffectEvent.Cause cause, boolean fireEvent) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        addEffect$Cause.set(cause);
 +        addEffect$fireEvent.set(fireEvent);
 +        return addEffect(pEffectInstance, pEntity);
@@ -641,26 +663,35 @@
      public boolean canBeAffected(MobEffectInstance p_21197_) {
          if (this.getType().is(EntityTypeTags.IMMUNE_TO_INFESTED)) {
              return !p_21197_.is(MobEffects.INFESTED);
-@@ -962,7 +_,7 @@
+@@ -962,7 +_,10 @@
      }
  
      public void forceAddEffect(MobEffectInstance p_147216_, @Nullable Entity p_147217_) {
 -        if (this.canBeAffected(p_147216_)) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        if (net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, p_147216_, p_147217_)) {
              MobEffectInstance mobeffectinstance = this.activeEffects.put(p_147216_.getEffect(), p_147216_);
              if (mobeffectinstance == null) {
                  this.onEffectAdded(p_147216_, p_147217_);
-@@ -977,12 +_,42 @@
+@@ -977,12 +_,54 @@
          return this.getType().is(EntityTypeTags.INVERTED_HEALING_AND_HARM);
      }
  
 +    // Youer start
 +    private AtomicReference<EntityPotionEffectEvent.Cause> removeEffectNoUpdateCause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
 +    public void removeEffectNoUpdateCause(EntityPotionEffectEvent.Cause cause) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        removeEffectNoUpdateCause.set(cause);
 +    }
      @Nullable
      public MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> p_316233_) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        if (isTickingEffects) {
 +            effectsToProcess.add(new ProcessableEffect(p_316233_, removeEffectNoUpdateCause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN)));
 +            return null;
@@ -683,21 +714,30 @@
  
 +    @Nullable
 +    public MobEffectInstance c(Holder<MobEffect> pEffect, EntityPotionEffectEvent.Cause cause) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        removeEffectNoUpdateCause.set(cause);
 +        return removeEffectNoUpdate(pEffect);
 +    }
 +
 +
      public boolean removeEffect(Holder<MobEffect> p_316570_) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        if (EventHooks.onEffectRemoved(this, p_316570_, null)) return false;
          MobEffectInstance mobeffectinstance = this.removeEffectNoUpdate(p_316570_);
          if (mobeffectinstance != null) {
              this.onEffectRemoved(mobeffectinstance);
-@@ -992,6 +_,12 @@
+@@ -992,6 +_,15 @@
          }
      }
  
 +    public boolean removeEffect(Holder<MobEffect> pEffect, EntityPotionEffectEvent.Cause cause) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        removeEffectNoUpdateCause.set(cause);
 +        return removeEffect(pEffect);
 +    }
@@ -706,21 +746,30 @@
      protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
          this.effectsDirty = true;
          if (!this.level().isClientSide) {
-@@ -1060,18 +_,74 @@
+@@ -1060,18 +_,89 @@
          }
      }
  
 +    // Youer start
 +    private RegainReason heal$regainReason = RegainReason.CUSTOM;
 +    public void pushHealReason(RegainReason regainReason) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        this.heal$regainReason = regainReason;
 +    }
 +    private final AtomicBoolean heal$isFastRegen = new AtomicBoolean(false);
 +    public void pushHeal$isFastRegen(boolean isFastRegen) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        this.heal$isFastRegen.set(isFastRegen);
 +    }
 +
      public void heal(float p_21116_) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        p_21116_ = net.neoforged.neoforge.event.EventHooks.onLivingHeal(this, p_21116_);
 +        if (p_21116_ <= 0) return;
          float f = this.getHealth();
@@ -760,9 +809,15 @@
  
 +    public AtomicBoolean fake$setHealth = new AtomicBoolean(false);
 +    public void fake$setHealth(boolean fake) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        fake$setHealth.set(fake);
 +    }
      public void setHealth(float p_21154_) {
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        if (fake$setHealth.getAndSet(false)) {
 +            return;
 +        }
@@ -1949,11 +2004,14 @@
  
      @Override
      public float getYHeadRot() {
-@@ -2950,7 +_,7 @@
+@@ -2950,7 +_,10 @@
      }
  
      public final void setAbsorptionAmount(float p_21328_) {
 -        this.internalSetAbsorptionAmount(Mth.clamp(p_21328_, 0.0F, this.getMaxAbsorption()));
++        if (this.isAddedToLevel()) {
++            com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this);
++        }
 +        this.internalSetAbsorptionAmount(!Float.isNaN(p_21328_) ? Mth.clamp(p_21328_, 0.0F, this.getMaxAbsorption()) : 0.0F); // Paper - Check for NaN
      }
  

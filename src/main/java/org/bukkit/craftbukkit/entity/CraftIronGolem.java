@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.IronGolem;
 
@@ -25,7 +26,10 @@ public class CraftIronGolem extends CraftGolem implements IronGolem {
 
     @Override
     public void setPlayerCreated(boolean playerCreated) {
-        this.getHandle().setPlayerCreated(playerCreated);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setPlayerCreated(playerCreated);
+            return null;
+        });
     }
 
     // Purpur start
@@ -37,7 +41,10 @@ public class CraftIronGolem extends CraftGolem implements IronGolem {
 
     @Override
     public void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner) {
-        getHandle().setSummoner(summoner);
+        ThreadedServer.withWorldMutationLock(() -> {
+            getHandle().setSummoner(summoner);
+            return null;
+        });
     }
     // Purpur end
 }

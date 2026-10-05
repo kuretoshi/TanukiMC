@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.google.common.base.Preconditions;
 import java.net.URI;
 import java.util.ArrayList;
@@ -40,49 +41,57 @@ public class CraftServerLinks implements ServerLinks {
 
     @Override
     public ServerLink setLink(Type type, URI url) {
-        Preconditions.checkArgument(type != null, "type cannot be null");
-        Preconditions.checkArgument(url != null, "url cannot be null");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(type != null, "type cannot be null");
+            Preconditions.checkArgument(url != null, "url cannot be null");
 
-        ServerLink existing = getLink(type);
-        if (existing != null) {
-            removeLink(existing);
-        }
-        return addLink(type, url);
+            ServerLink existing = getLink(type);
+            if (existing != null) {
+                removeLink(existing);
+            }
+            return addLink(type, url);
+        });
     }
 
     @Override
     public ServerLink addLink(Type type, URI url) {
-        Preconditions.checkArgument(type != null, "type cannot be null");
-        Preconditions.checkArgument(url != null, "url cannot be null");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(type != null, "type cannot be null");
+            Preconditions.checkArgument(url != null, "url cannot be null");
 
-        CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.knownType(fromBukkit(type), url));
-        addLink(link);
+            CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.knownType(fromBukkit(type), url));
+            addLink(link);
 
-        return link;
+            return link;
+        });
     }
 
     // Paper start - Adventure
     @Override
     public ServerLink addLink(net.kyori.adventure.text.Component displayName, URI url) {
-        Preconditions.checkArgument(displayName != null, "displayName cannot be null");
-        Preconditions.checkArgument(url != null, "url cannot be null");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(displayName != null, "displayName cannot be null");
+            Preconditions.checkArgument(url != null, "url cannot be null");
 
-        CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.custom(io.papermc.paper.adventure.PaperAdventure.asVanilla(displayName), url));
-        this.addLink(link);
+            CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.custom(io.papermc.paper.adventure.PaperAdventure.asVanilla(displayName), url));
+            this.addLink(link);
 
-        return link;
+            return link;
+        });
     }
     // Paper end - Adventure
 
     @Override
     public ServerLink addLink(String displayName, URI url) {
-        Preconditions.checkArgument(displayName != null, "displayName cannot be null");
-        Preconditions.checkArgument(url != null, "url cannot be null");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(displayName != null, "displayName cannot be null");
+            Preconditions.checkArgument(url != null, "url cannot be null");
 
-        CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.custom(CraftChatMessage.fromStringOrNull(displayName), url));
-        addLink(link);
+            CraftServerLink link = new CraftServerLink(net.minecraft.server.ServerLinks.Entry.custom(CraftChatMessage.fromStringOrNull(displayName), url));
+            addLink(link);
 
-        return link;
+            return link;
+        });
     }
 
     private void addLink(CraftServerLink link) {
@@ -94,14 +103,16 @@ public class CraftServerLinks implements ServerLinks {
 
     @Override
     public boolean removeLink(ServerLink link) {
-        Preconditions.checkArgument(link != null, "link cannot be null");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(link != null, "link cannot be null");
 
-        List<net.minecraft.server.ServerLinks.Entry> lst = new ArrayList<>(getServerLinks().entries());
-        boolean result = lst.remove(((CraftServerLink) link).handle);
+            List<net.minecraft.server.ServerLinks.Entry> lst = new ArrayList<>(getServerLinks().entries());
+            boolean result = lst.remove(((CraftServerLink) link).handle);
 
-        setLinks(new net.minecraft.server.ServerLinks(lst));
+            setLinks(new net.minecraft.server.ServerLinks(lst));
 
-        return result;
+            return result;
+        });
     }
 
     @Override

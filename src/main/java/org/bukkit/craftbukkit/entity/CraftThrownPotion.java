@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Collection;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -35,12 +36,15 @@ public class CraftThrownPotion extends CraftThrowableProjectile implements Throw
 
     @Override
     public void setItem(ItemStack item) {
-        Preconditions.checkArgument(item != null, "ItemStack cannot be null");
-        // Preconditions.checkArgument(item.getType() == Material.LINGERING_POTION || item.getType() == Material.SPLASH_POTION, "ItemStack material must be Material.LINGERING_POTION or Material.SPLASH_POTION but was Material.%s", item.getType()); // Paper - Projectile API
-        org.bukkit.inventory.meta.PotionMeta meta = (item.getType() == Material.LINGERING_POTION || item.getType() == Material.SPLASH_POTION) ? null : this.getPotionMeta(); // Paper - Projectile API
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(item != null, "ItemStack cannot be null");
+            // Preconditions.checkArgument(item.getType() == Material.LINGERING_POTION || item.getType() == Material.SPLASH_POTION, "ItemStack material must be Material.LINGERING_POTION or Material.SPLASH_POTION but was Material.%s", item.getType()); // Paper - Projectile API
+            org.bukkit.inventory.meta.PotionMeta meta = (item.getType() == Material.LINGERING_POTION || item.getType() == Material.SPLASH_POTION) ? null : this.getPotionMeta(); // Paper - Projectile API
 
-        this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
-        if (meta != null) this.setPotionMeta(meta); // Paper - Projectile API
+            this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
+            if (meta != null) this.setPotionMeta(meta); // Paper - Projectile API
+            return null;
+        });
     }
 
     // Paper start - Projectile API
@@ -51,14 +55,20 @@ public class CraftThrownPotion extends CraftThrowableProjectile implements Throw
 
     @Override
     public void setPotionMeta(org.bukkit.inventory.meta.PotionMeta meta) {
-        net.minecraft.world.item.ItemStack item = this.getHandle().getItem();
-        CraftItemStack.applyMetaToItem(item, meta);
-        this.getHandle().setItem(item); // Reset item
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            net.minecraft.world.item.ItemStack item = this.getHandle().getItem();
+            CraftItemStack.applyMetaToItem(item, meta);
+            this.getHandle().setItem(item); // Reset item
+            return null;
+        });
     }
 
     @Override
     public void splash() {
-        this.getHandle().splash(null);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().splash(null);
+            return null;
+        });
     }
     // Paper end
 

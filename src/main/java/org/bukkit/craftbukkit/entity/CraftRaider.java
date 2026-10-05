@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.Raid;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
@@ -28,7 +29,10 @@ public abstract class CraftRaider extends CraftMonster implements Raider {
 
     @Override
     public void setRaid(Raid raid) {
-        this.getHandle().setCurrentRaid(raid != null ? ((CraftRaid) raid).getHandle() : null);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setCurrentRaid(raid != null ? ((CraftRaid) raid).getHandle() : null);
+            return null;
+        });
     }
 
     @Override
@@ -39,7 +43,10 @@ public abstract class CraftRaider extends CraftMonster implements Raider {
     @Override
     public void setWave(int wave) {
         Preconditions.checkArgument(wave >= 0, "wave must be >= 0");
-        this.getHandle().setWave(wave);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setWave(wave);
+            return null;
+        });
     }
 
     @Override
@@ -54,12 +61,15 @@ public abstract class CraftRaider extends CraftMonster implements Raider {
 
     @Override
     public void setPatrolTarget(Block block) {
-        if (block == null) {
-            this.getHandle().setPatrolTarget(null);
-        } else {
-            Preconditions.checkArgument(block.getWorld().equals(this.getWorld()), "Block must be in same world");
-            this.getHandle().setPatrolTarget(((CraftBlock) block).getPosition());
-        }
+        ThreadedServer.withWorldMutationLock(() -> {
+            if (block == null) {
+                this.getHandle().setPatrolTarget(null);
+            } else {
+                Preconditions.checkArgument(block.getWorld().equals(this.getWorld()), "Block must be in same world");
+                this.getHandle().setPatrolTarget(((CraftBlock) block).getPosition());
+            }
+            return null;
+        });
     }
 
     @Override
@@ -69,7 +79,10 @@ public abstract class CraftRaider extends CraftMonster implements Raider {
 
     @Override
     public void setPatrolLeader(boolean leader) {
-        this.getHandle().setPatrolLeader(leader);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setPatrolLeader(leader);
+            return null;
+        });
     }
 
     @Override
@@ -79,7 +92,10 @@ public abstract class CraftRaider extends CraftMonster implements Raider {
 
     @Override
     public void setCanJoinRaid(boolean join) {
-        this.getHandle().setCanJoinRaid(join);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setCanJoinRaid(join);
+            return null;
+        });
     }
 
     @Override
@@ -89,7 +105,10 @@ public abstract class CraftRaider extends CraftMonster implements Raider {
 
     @Override
     public void setCelebrating(boolean celebrating) {
-        this.getHandle().setCelebrating(celebrating);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setCelebrating(celebrating);
+            return null;
+        });
     }
 
     @Override
@@ -100,7 +119,10 @@ public abstract class CraftRaider extends CraftMonster implements Raider {
     @Override
     public void setTicksOutsideRaid(int ticks) {
         Preconditions.checkArgument(ticks >= 0, "ticks must be >= 0");
-        this.getHandle().setTicksOutsideRaid(ticks);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setTicksOutsideRaid(ticks);
+            return null;
+        });
     }
 
     @Override

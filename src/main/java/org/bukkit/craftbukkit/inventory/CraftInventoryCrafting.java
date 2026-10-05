@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Arrays;
 import java.util.List;
 import net.minecraft.world.Container;
@@ -33,8 +34,11 @@ public class CraftInventoryCrafting extends CraftInventory implements CraftingIn
 
     @Override
     public void setContents(ItemStack[] items) {
-        Preconditions.checkArgument(items.length <= this.getSize(), "Invalid inventory size (%s); expected %s or less", items.length, this.getSize());
-        this.setContents(items[0], Arrays.copyOfRange(items, 1, items.length));
+        ThreadedServer.withWorldMutationLock(() -> {
+            Preconditions.checkArgument(items.length <= this.getSize(), "Invalid inventory size (%s); expected %s or less", items.length, this.getSize());
+            this.setContents(items[0], Arrays.copyOfRange(items, 1, items.length));
+            return null;
+        });
     }
 
     @Override
@@ -57,8 +61,11 @@ public class CraftInventoryCrafting extends CraftInventory implements CraftingIn
     }
 
     public void setContents(ItemStack result, ItemStack[] contents) {
-        this.setResult(result);
-        this.setMatrix(contents);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.setResult(result);
+            this.setMatrix(contents);
+            return null;
+        });
     }
 
     @Override
@@ -74,11 +81,14 @@ public class CraftInventoryCrafting extends CraftInventory implements CraftingIn
 
     @Override
     public void setItem(int index, ItemStack item) {
-        if (index < this.getResultInventory().getContainerSize()) {
-            this.getResultInventory().setItem(index, CraftItemStack.asNMSCopy(item));
-        } else {
-            this.getMatrixInventory().setItem((index - this.getResultInventory().getContainerSize()), CraftItemStack.asNMSCopy(item));
-        }
+        ThreadedServer.withWorldMutationLock(() -> {
+            if (index < this.getResultInventory().getContainerSize()) {
+                this.getResultInventory().setItem(index, CraftItemStack.asNMSCopy(item));
+            } else {
+                this.getMatrixInventory().setItem((index - this.getResultInventory().getContainerSize()), CraftItemStack.asNMSCopy(item));
+            }
+            return null;
+        });
     }
 
     @Override
@@ -97,21 +107,27 @@ public class CraftInventoryCrafting extends CraftInventory implements CraftingIn
 
     @Override
     public void setMatrix(ItemStack[] contents) {
-        Preconditions.checkArgument(contents.length <= this.getMatrixInventory().getContainerSize(), "Invalid inventory size (%s); expected %s or less", contents.length, this.getMatrixInventory().getContainerSize());
+        ThreadedServer.withWorldMutationLock(() -> {
+            Preconditions.checkArgument(contents.length <= this.getMatrixInventory().getContainerSize(), "Invalid inventory size (%s); expected %s or less", contents.length, this.getMatrixInventory().getContainerSize());
 
-        for (int i = 0; i < this.getMatrixInventory().getContainerSize(); i++) {
-            if (i < contents.length) {
-                this.getMatrixInventory().setItem(i, CraftItemStack.asNMSCopy(contents[i]));
-            } else {
-                this.getMatrixInventory().setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
+            for (int i = 0; i < this.getMatrixInventory().getContainerSize(); i++) {
+                if (i < contents.length) {
+                    this.getMatrixInventory().setItem(i, CraftItemStack.asNMSCopy(contents[i]));
+                } else {
+                    this.getMatrixInventory().setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
+                }
             }
-        }
+            return null;
+        });
     }
 
     @Override
     public void setResult(ItemStack item) {
-        List<net.minecraft.world.item.ItemStack> contents = this.getResultInventory().getContents();
-        contents.set(0, CraftItemStack.asNMSCopy(item));
+        ThreadedServer.withWorldMutationLock(() -> {
+            List<net.minecraft.world.item.ItemStack> contents = this.getResultInventory().getContents();
+            contents.set(0, CraftItemStack.asNMSCopy(item));
+            return null;
+        });
     }
 
     @Override

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.boss.EnderDragonPart;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import org.bukkit.craftbukkit.CraftServer;
@@ -19,7 +20,10 @@ public class CraftComplexPart extends CraftEntity implements ComplexEntityPart {
 
     @Override
     public void setLastDamageCause(EntityDamageEvent cause) {
-        this.getParent().setLastDamageCause(cause);
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getParent().setLastDamageCause(cause);
+            return null;
+        });
     }
 
     @Override

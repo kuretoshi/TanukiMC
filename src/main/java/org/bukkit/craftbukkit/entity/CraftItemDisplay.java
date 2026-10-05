@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.item.ItemDisplayContext;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -30,7 +31,10 @@ public class CraftItemDisplay extends CraftDisplay implements ItemDisplay {
 
     @Override
     public void setItemStack(ItemStack item) {
-        this.getHandle().setItemStack(CraftItemStack.asNMSCopy(item));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setItemStack(CraftItemStack.asNMSCopy(item));
+            return null;
+        });
     }
 
     @Override
@@ -40,8 +44,11 @@ public class CraftItemDisplay extends CraftDisplay implements ItemDisplay {
 
     @Override
     public void setItemDisplayTransform(ItemDisplayTransform display) {
-        Preconditions.checkArgument(display != null, "Display cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(display != null, "Display cannot be null");
 
-        this.getHandle().setItemTransform(ItemDisplayContext.BY_ID.apply(display.ordinal()));
+            this.getHandle().setItemTransform(ItemDisplayContext.BY_ID.apply(display.ordinal()));
+            return null;
+        });
     }
 }

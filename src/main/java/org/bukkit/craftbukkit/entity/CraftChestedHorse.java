@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.animal.horse.AbstractChestedHorse;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.ChestedHorse;
@@ -22,8 +23,11 @@ public abstract class CraftChestedHorse extends CraftAbstractHorse implements Ch
 
     @Override
     public void setCarryingChest(boolean chest) {
-        if (chest == this.isCarryingChest()) return;
-        this.getHandle().setChest(chest);
-        this.getHandle().createInventory();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (chest == this.isCarryingChest()) return null;
+            this.getHandle().setChest(chest);
+            this.getHandle().createInventory();
+            return null;
+        });
     }
 }

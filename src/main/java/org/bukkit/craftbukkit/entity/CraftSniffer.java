@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import net.minecraft.core.BlockPos;
@@ -35,22 +36,28 @@ public class CraftSniffer extends CraftAnimals implements Sniffer {
     public void removeExploredLocation(Location location) {
         Preconditions.checkArgument(location != null, "location cannot be null");
 
-        BlockPos blockPosition = CraftLocation.toBlockPosition(location);
-        // Paper start
-        net.minecraft.world.level.Level level = location.getWorld() != null ? ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle() : this.getHandle().level();
-        net.minecraft.core.GlobalPos globalPos = net.minecraft.core.GlobalPos.of(level.dimension(), blockPosition);
-        this.getHandle().getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, this.getHandle().getExploredPositions().filter(blockPositionExplored -> !blockPositionExplored.equals(globalPos)).collect(Collectors.toList()));
-        // Paper end
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            BlockPos blockPosition = CraftLocation.toBlockPosition(location);
+            // Paper start
+            net.minecraft.world.level.Level level = location.getWorld() != null ? ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle() : this.getHandle().level();
+            net.minecraft.core.GlobalPos globalPos = net.minecraft.core.GlobalPos.of(level.dimension(), blockPosition);
+            this.getHandle().getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, this.getHandle().getExploredPositions().filter(blockPositionExplored -> !blockPositionExplored.equals(globalPos)).collect(Collectors.toList()));
+            // Paper end
+            return null;
+        });
     }
 
     @Override
     public void addExploredLocation(Location location) {
         Preconditions.checkArgument(location != null, "location cannot be null");
-        if (location.getWorld() != this.getWorld()) {
-            return;
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (location.getWorld() != this.getWorld()) {
+                return null;
+            }
 
-        this.getHandle().storeExploredPosition(CraftLocation.toBlockPosition(location));
+            this.getHandle().storeExploredPosition(CraftLocation.toBlockPosition(location));
+            return null;
+        });
     }
 
     @Override
@@ -61,7 +68,10 @@ public class CraftSniffer extends CraftAnimals implements Sniffer {
     @Override
     public void setState(Sniffer.State state) {
         Preconditions.checkArgument(state != null, "state cannot be null");
-        this.getHandle().transitionTo(this.stateToNMS(state));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().transitionTo(this.stateToNMS(state));
+            return null;
+        });
     }
 
     @Override

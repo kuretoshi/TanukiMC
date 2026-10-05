@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftMerchant;
@@ -35,7 +36,10 @@ public class CraftAbstractVillager extends CraftAgeable implements CraftMerchant
     // Paper start - Villager#resetOffers
     @Override
     public void resetOffers() {
-        getHandle().resetOffers();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().resetOffers();
+            return null;
+        });
     }
     // Paper end - Villager#resetOffers
 }

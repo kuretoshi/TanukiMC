@@ -41,7 +41,7 @@ public class YouerCommand extends Command {
 
     public YouerCommand(String name) {
         super(name);
-        this.description = "Youer related commands";
+        this.description = "TanukiMC related commands";
         this.usageMessage = "/youer [" + String.join("|", COMMAND_LIST) + "]";
         this.setPermission("youer.command.youer");
     }
@@ -117,7 +117,7 @@ public class YouerCommand extends Command {
                 return true;
             }
             case "version" -> {
-                sender.sendMessage("Youer: " + Youer.versionInfo.youer());
+                sender.sendMessage("TanukiMC: " + Youer.versionInfo.youer());
                 sender.sendMessage("NeoForge: " + Youer.versionInfo.neoforge());
                 sender.sendMessage("Bukkit: " + Youer.versionInfo.bukkit());
                 sender.sendMessage("CraftBukkit: " + Youer.versionInfo.craftbukkit());

@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.Scoreboard;
@@ -45,22 +46,22 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
     }
     @Override
     public CraftObjective registerNewObjective(String name, Criteria criteria, net.kyori.adventure.text.Component displayName, RenderType renderType) throws IllegalArgumentException {
-        if (displayName == null) {
-            displayName = net.kyori.adventure.text.Component.empty();
-        }
-        Preconditions.checkArgument(name != null, "Objective name cannot be null");
-        Preconditions.checkArgument(criteria != null, "Criteria cannot be null");
-        Preconditions.checkArgument(renderType != null, "RenderType cannot be null");
-        Preconditions.checkArgument(name.length() <= Short.MAX_VALUE, "The name '%s' is longer than the limit of 32767 characters (%s)", name, name.length());
-        Preconditions.checkArgument(this.board.getObjective(name) == null, "An objective of name '%s' already exists", name);
-        // Paper start - lazily track plugin scoreboards
-        if (((CraftCriteria) criteria).criteria != net.minecraft.world.scores.criteria.ObjectiveCriteria.DUMMY && !this.registeredGlobally) {
-            net.minecraft.server.MinecraftServer.getServer().server.getScoreboardManager().registerScoreboardForVanilla(this);
-            this.registeredGlobally = true;
-        }
-        // Paper end - lazily track plugin scoreboards
-        net.minecraft.world.scores.Objective objective = this.board.addObjective(name, ((CraftCriteria) criteria).criteria, io.papermc.paper.adventure.PaperAdventure.asVanilla(displayName), CraftScoreboardTranslations.fromBukkitRender(renderType), true, null);
-        return new CraftObjective(this, objective);
+        net.kyori.adventure.text.Component finalDisplayName = displayName == null ? net.kyori.adventure.text.Component.empty() : displayName;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(name != null, "Objective name cannot be null");
+            Preconditions.checkArgument(criteria != null, "Criteria cannot be null");
+            Preconditions.checkArgument(renderType != null, "RenderType cannot be null");
+            Preconditions.checkArgument(name.length() <= Short.MAX_VALUE, "The name '%s' is longer than the limit of 32767 characters (%s)", name, name.length());
+            Preconditions.checkArgument(this.board.getObjective(name) == null, "An objective of name '%s' already exists", name);
+            // Paper start - lazily track plugin scoreboards
+            if (((CraftCriteria) criteria).criteria != net.minecraft.world.scores.criteria.ObjectiveCriteria.DUMMY && !this.registeredGlobally) {
+                net.minecraft.server.MinecraftServer.getServer().server.getScoreboardManager().registerScoreboardForVanilla(this);
+                this.registeredGlobally = true;
+            }
+            // Paper end - lazily track plugin scoreboards
+            net.minecraft.world.scores.Objective objective = this.board.addObjective(name, ((CraftCriteria) criteria).criteria, io.papermc.paper.adventure.PaperAdventure.asVanilla(finalDisplayName), CraftScoreboardTranslations.fromBukkitRender(renderType), true, null);
+            return new CraftObjective(this, objective);
+        });
     }
     // Paper end - Adventure
 
@@ -166,11 +167,14 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
     }
 
     private void resetScores(ScoreHolder entry) {
-        Preconditions.checkArgument(entry != null, "Entry cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(entry != null, "Entry cannot be null");
 
-        for (net.minecraft.world.scores.Objective objective : this.board.getObjectives()) {
-            this.board.resetSinglePlayerScore(entry, objective);
-        }
+            for (net.minecraft.world.scores.Objective objective : this.board.getObjectives()) {
+                this.board.resetSinglePlayerScore(entry, objective);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -204,11 +208,13 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
 
     @Override
     public Team registerNewTeam(String name) {
-        Preconditions.checkArgument(name != null, "Team name cannot be null");
-        Preconditions.checkArgument(name.length() <= Short.MAX_VALUE, "Team name '%s' is longer than the limit of 32767 characters (%s)", name, name.length());
-        Preconditions.checkArgument(this.board.getPlayerTeam(name) == null, "Team name '%s' is already in use", name);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(name != null, "Team name cannot be null");
+            Preconditions.checkArgument(name.length() <= Short.MAX_VALUE, "Team name '%s' is longer than the limit of 32767 characters (%s)", name, name.length());
+            Preconditions.checkArgument(this.board.getPlayerTeam(name) == null, "Team name '%s' is already in use", name);
 
-        return new CraftTeam(this, this.board.addPlayerTeam(name));
+            return new CraftTeam(this, this.board.addPlayerTeam(name));
+        });
     }
 
     @Override
@@ -231,8 +237,11 @@ public final class CraftScoreboard implements org.bukkit.scoreboard.Scoreboard {
 
     @Override
     public void clearSlot(DisplaySlot slot) {
-        Preconditions.checkArgument(slot != null, "Slot cannot be null");
-        this.board.setDisplayObjective(CraftScoreboardTranslations.fromBukkitSlot(slot), null);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(slot != null, "Slot cannot be null");
+            this.board.setDisplayObjective(CraftScoreboardTranslations.fromBukkitSlot(slot), null);
+            return null;
+        });
     }
 
     // Paper start

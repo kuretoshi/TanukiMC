@@ -5,13 +5,14 @@
 # This workflow will build a Java project with Gradle and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
 
-name: Java CI with Gradle
+name: TanukiMC Build
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "1.21.1" ]
+    branches: [ "tanukimc-1.21.1" ]
   pull_request:
-    branches: [ "1.21.1" ]
+    branches: [ "tanukimc-1.21.1" ]
 
 jobs:
   build:
@@ -36,10 +37,11 @@ jobs:
         ./gradlew setup
 
     - name: Build with Gradle Wrapper
-      run: ./gradlew youerJar
+      run: ./gradlew :youer:threadingTopologyTest :youer:youerJar
 
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v6
       with:
-        name: Youer-1.21.1-server
-        path: projects/youer/build/libs/*-server.jar
+        name: TanukiMC-1.21.1-server
+        path: projects/youer/build/libs/TanukiMC-*-server.jar
+        if-no-files-found: error

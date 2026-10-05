@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.destroystokyo.paper.entity.villager.Reputation;
 import java.util.Locale;
 import java.util.Map;
@@ -41,9 +42,12 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public void remove() {
-        this.getHandle().releaseAllPois();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().releaseAllPois();
 
-        super.remove();
+            super.remove();
+            return null;
+        });
     }
 
     @Override
@@ -53,8 +57,11 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public void setProfession(Profession profession) {
-        Preconditions.checkArgument(profession != null, "Profession cannot be null");
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setProfession(CraftProfession.bukkitToMinecraft(profession)));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(profession != null, "Profession cannot be null");
+            this.getHandle().setVillagerData(this.getHandle().getVillagerData().setProfession(CraftProfession.bukkitToMinecraft(profession)));
+            return null;
+        });
     }
 
     @Override
@@ -64,8 +71,11 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public void setVillagerType(Type type) {
-        Preconditions.checkArgument(type != null, "Type cannot be null");
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setType(CraftType.bukkitToMinecraft(type)));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(type != null, "Type cannot be null");
+            this.getHandle().setVillagerData(this.getHandle().getVillagerData().setType(CraftType.bukkitToMinecraft(type)));
+            return null;
+        });
     }
 
     @Override
@@ -75,9 +85,12 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public void setVillagerLevel(int level) {
-        Preconditions.checkArgument(1 <= level && level <= 5, "level (%s) must be between [1, 5]", level);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(1 <= level && level <= 5, "level (%s) must be between [1, 5]", level);
 
-        this.getHandle().setVillagerData(this.getHandle().getVillagerData().setLevel(level));
+            this.getHandle().setVillagerData(this.getHandle().getVillagerData().setLevel(level));
+            return null;
+        });
     }
 
     @Override
@@ -87,38 +100,46 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public void setVillagerExperience(int experience) {
-        Preconditions.checkArgument(experience >= 0, "Experience (%s) must be positive", experience);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(experience >= 0, "Experience (%s) must be positive", experience);
 
-        this.getHandle().setVillagerXp(experience);
+            this.getHandle().setVillagerXp(experience);
+            return null;
+        });
     }
 
     // Paper start
     @Override
     public boolean increaseLevel(int amount) {
-        Preconditions.checkArgument(amount > 0, "Level earned must be positive");
-        int supposedFinalLevel = this.getVillagerLevel() + amount;
-        Preconditions.checkArgument(net.minecraft.world.entity.npc.VillagerData.MIN_VILLAGER_LEVEL <= supposedFinalLevel && supposedFinalLevel <= net.minecraft.world.entity.npc.VillagerData.MAX_VILLAGER_LEVEL,
-                "Final level reached after the donation (%d) must be between [%d, %d]".formatted(supposedFinalLevel, net.minecraft.world.entity.npc.VillagerData.MIN_VILLAGER_LEVEL, net.minecraft.world.entity.npc.VillagerData.MAX_VILLAGER_LEVEL));
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(amount > 0, "Level earned must be positive");
+            int supposedFinalLevel = this.getVillagerLevel() + amount;
+            Preconditions.checkArgument(net.minecraft.world.entity.npc.VillagerData.MIN_VILLAGER_LEVEL <= supposedFinalLevel && supposedFinalLevel <= net.minecraft.world.entity.npc.VillagerData.MAX_VILLAGER_LEVEL,
+                    "Final level reached after the donation (%d) must be between [%d, %d]".formatted(supposedFinalLevel, net.minecraft.world.entity.npc.VillagerData.MIN_VILLAGER_LEVEL, net.minecraft.world.entity.npc.VillagerData.MAX_VILLAGER_LEVEL));
 
-        it.unimi.dsi.fastutil.ints.Int2ObjectMap<net.minecraft.world.entity.npc.VillagerTrades.ItemListing[]> trades =
-                net.minecraft.world.entity.npc.VillagerTrades.TRADES.get(this.getHandle().getVillagerData().getProfession());
+            it.unimi.dsi.fastutil.ints.Int2ObjectMap<net.minecraft.world.entity.npc.VillagerTrades.ItemListing[]> trades =
+                    net.minecraft.world.entity.npc.VillagerTrades.TRADES.get(this.getHandle().getVillagerData().getProfession());
 
-        if (trades == null || trades.isEmpty()) {
-            this.getHandle().setVillagerData(this.getHandle().getVillagerData().setLevel(supposedFinalLevel));
-            return false;
-        }
+            if (trades == null || trades.isEmpty()) {
+                this.getHandle().setVillagerData(this.getHandle().getVillagerData().setLevel(supposedFinalLevel));
+                return false;
+            }
 
-        while (amount > 0) {
-            this.getHandle().increaseMerchantCareer();
-            amount--;
-        }
-        return true;
+            int remaining = amount;
+            while (remaining > 0) {
+                this.getHandle().increaseMerchantCareer();
+                remaining--;
+            }
+            return true;
+        });
     }
 
     @Override
     public boolean addTrades(int amount) {
-        Preconditions.checkArgument(amount > 0, "Number of trades unlocked must be positive");
-        return this.getHandle().updateTrades(amount);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(amount > 0, "Number of trades unlocked must be positive");
+            return this.getHandle().updateTrades(amount);
+        });
     }
 
     @Override
@@ -128,44 +149,57 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public void setRestocksToday(int restocksToday) {
-        getHandle().numberOfRestocksToday = restocksToday;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().numberOfRestocksToday = restocksToday;
+            return null;
+        });
     }
     // Paper end
 
     @Override
     public boolean sleep(Location location) {
-        Preconditions.checkArgument(location != null, "Location cannot be null");
-        Preconditions.checkArgument(location.getWorld() != null, "Location needs to be in a world");
-        Preconditions.checkArgument(location.getWorld().equals(this.getWorld()), "Cannot sleep across worlds");
-        Preconditions.checkState(!this.getHandle().generation, "Cannot sleep during world generation");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(location != null, "Location cannot be null");
+            Preconditions.checkArgument(location.getWorld() != null, "Location needs to be in a world");
+            Preconditions.checkArgument(location.getWorld().equals(this.getWorld()), "Cannot sleep across worlds");
+            Preconditions.checkState(!this.getHandle().generation, "Cannot sleep during world generation");
 
-        BlockPos position = CraftLocation.toBlockPosition(location);
-        BlockState iblockdata = this.getHandle().level().getBlockState(position);
-        if (!(iblockdata.getBlock() instanceof BedBlock)) {
-            return false;
-        }
+            BlockPos position = CraftLocation.toBlockPosition(location);
+            BlockState iblockdata = this.getHandle().level().getBlockState(position);
+            if (!(iblockdata.getBlock() instanceof BedBlock)) {
+                return false;
+            }
 
-        this.getHandle().startSleeping(position);
-        return true;
+            this.getHandle().startSleeping(position);
+            return true;
+        });
     }
 
     @Override
     public void wakeup() {
-        Preconditions.checkState(this.isSleeping(), "Cannot wakeup if not sleeping");
-        Preconditions.checkState(!this.getHandle().generation, "Cannot wakeup during world generation");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkState(this.isSleeping(), "Cannot wakeup if not sleeping");
+            Preconditions.checkState(!this.getHandle().generation, "Cannot wakeup during world generation");
 
-        this.getHandle().stopSleeping();
+            this.getHandle().stopSleeping();
+            return null;
+        });
     }
 
     @Override
     public void shakeHead() {
-        this.getHandle().setUnhappy();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setUnhappy();
+            return null;
+        });
     }
 
     @Override
     public ZombieVillager zombify() {
-        net.minecraft.world.entity.monster.ZombieVillager entityzombievillager = Zombie.zombifyVillager(this.getHandle().level().getMinecraftWorld(), this.getHandle(), this.getHandle().blockPosition(), this.isSilent(), CreatureSpawnEvent.SpawnReason.CUSTOM);
-        return (entityzombievillager != null) ? (ZombieVillager) entityzombievillager.getBukkitEntity() : null;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            net.minecraft.world.entity.monster.ZombieVillager entityzombievillager = Zombie.zombifyVillager(this.getHandle().level().getMinecraftWorld(), this.getHandle(), this.getHandle().blockPosition(), this.isSilent(), CreatureSpawnEvent.SpawnReason.CUSTOM);
+            return (entityzombievillager != null) ? (ZombieVillager) entityzombievillager.getBukkitEntity() : null;
+        });
     }
 
     public static class CraftType implements Type, Handleable<VillagerType> {
@@ -350,24 +384,33 @@ public class CraftVillager extends CraftAbstractVillager implements Villager {
 
     @Override
     public void setReputation(UUID uniqueId, Reputation reputation) {
-        net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips nmsReputation =
-                getHandle().getGossips().gossips.computeIfAbsent(
-                        uniqueId,
-                        key -> new net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips()
-                );
-        nmsReputation.assignFromPaperReputation(reputation);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips nmsReputation =
+                    getHandle().getGossips().gossips.computeIfAbsent(
+                            uniqueId,
+                            key -> new net.minecraft.world.entity.ai.gossip.GossipContainer.EntityGossips()
+                    );
+            nmsReputation.assignFromPaperReputation(reputation);
+            return null;
+        });
     }
 
     @Override
     public void setReputations(Map<UUID, Reputation> reputations) {
-        for (Map.Entry<UUID, Reputation> entry : reputations.entrySet()) {
-            setReputation(entry.getKey(), entry.getValue());
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            for (Map.Entry<UUID, Reputation> entry : reputations.entrySet()) {
+                setReputation(entry.getKey(), entry.getValue());
+            }
+            return null;
+        });
     }
 
     @Override
     public void clearReputations() {
-        getHandle().getGossips().gossips.clear();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getGossips().gossips.clear();
+            return null;
+        });
     }
     // Paper end
 

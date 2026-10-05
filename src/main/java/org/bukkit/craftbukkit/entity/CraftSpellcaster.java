@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.entity;
 import com.google.common.base.Preconditions;
 import com.mohistmc.dynamicenum.MohistDynamEnum;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.monster.SpellcasterIllager;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Spellcaster;
@@ -32,7 +33,10 @@ public class CraftSpellcaster extends CraftIllager implements Spellcaster {
     public void setSpell(Spell spell) {
         Preconditions.checkArgument(spell != null, "Use Spell.NONE");
 
-        this.getHandle().setIsCastingSpell(CraftSpellcaster.toNMSSpell(spell));
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().setIsCastingSpell(CraftSpellcaster.toNMSSpell(spell));
+            return null;
+        });
     }
 
     public static Spell toBukkitSpell(SpellcasterIllager.IllagerSpell spell) {

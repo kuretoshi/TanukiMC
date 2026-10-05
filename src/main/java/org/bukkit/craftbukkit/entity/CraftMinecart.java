@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -20,7 +21,10 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
 
     @Override
     public void setDamage(double damage) {
-        this.getHandle().setDamage((float) damage);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setDamage((float) damage);
+            return null;
+        });
     }
 
     @Override
@@ -35,9 +39,12 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
 
     @Override
     public void setMaxSpeed(double speed) {
-        if (speed >= 0D) {
-            this.getHandle().maxSpeed = speed;
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (speed >= 0D) {
+                this.getHandle().maxSpeed = speed;
+            }
+            return null;
+        });
     }
 
     @Override
@@ -47,7 +54,10 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
 
     @Override
     public void setSlowWhenEmpty(boolean slow) {
-        this.getHandle().slowWhenEmpty = slow;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().slowWhenEmpty = slow;
+            return null;
+        });
     }
 
     @Override
@@ -57,7 +67,10 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
 
     @Override
     public void setFlyingVelocityMod(Vector flying) {
-        this.getHandle().setFlyingVelocityMod(flying);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setFlyingVelocityMod(flying);
+            return null;
+        });
     }
 
     @Override
@@ -67,7 +80,10 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
 
     @Override
     public void setDerailedVelocityMod(Vector derailed) {
-        this.getHandle().setDerailedVelocityMod(derailed);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setDerailedVelocityMod(derailed);
+            return null;
+        });
     }
 
     // Paper start
@@ -93,26 +109,32 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
 
     @Override
     public void setDisplayBlock(MaterialData material) {
-        if (material != null) {
-            BlockState block = CraftMagicNumbers.getBlock(material);
-            this.getHandle().setDisplayBlockState(block);
-        } else {
-            // Set block to air (default) and set the flag to not have a display block.
-            this.getHandle().setDisplayBlockState(Blocks.AIR.defaultBlockState());
-            this.getHandle().setCustomDisplay(false);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (material != null) {
+                BlockState block = CraftMagicNumbers.getBlock(material);
+                this.getHandle().setDisplayBlockState(block);
+            } else {
+                // Set block to air (default) and set the flag to not have a display block.
+                this.getHandle().setDisplayBlockState(Blocks.AIR.defaultBlockState());
+                this.getHandle().setCustomDisplay(false);
+            }
+            return null;
+        });
     }
 
     @Override
     public void setDisplayBlockData(BlockData blockData) {
-        if (blockData != null) {
-            BlockState block = ((CraftBlockData) blockData).getState();
-            this.getHandle().setDisplayBlockState(block);
-        } else {
-            // Set block to air (default) and set the flag to not have a display block.
-            this.getHandle().setDisplayBlockState(Blocks.AIR.defaultBlockState());
-            this.getHandle().setCustomDisplay(false);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (blockData != null) {
+                BlockState block = ((CraftBlockData) blockData).getState();
+                this.getHandle().setDisplayBlockState(block);
+            } else {
+                // Set block to air (default) and set the flag to not have a display block.
+                this.getHandle().setDisplayBlockState(Blocks.AIR.defaultBlockState());
+                this.getHandle().setCustomDisplay(false);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -129,7 +151,10 @@ public abstract class CraftMinecart extends CraftVehicle implements Minecart {
 
     @Override
     public void setDisplayBlockOffset(int offset) {
-        this.getHandle().setDisplayOffset(offset);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setDisplayOffset(offset);
+            return null;
+        });
     }
 
     @Override

@@ -20,6 +20,7 @@ import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.mohistmc.youer.neoforge.compat.LithostitchedCompat;
 import com.mohistmc.youer.neoforge.compat.TerraBlenderCompat;
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.mohistmc.youer.util.Level2LevelStem;
 import com.mohistmc.youer.util.ProxyUtils;
 import com.mojang.authlib.GameProfile;
@@ -348,37 +349,41 @@ public final class CraftServer implements Server {
 
     @Override
     public final boolean isOwnedByCurrentRegion(World world, io.papermc.paper.math.Position position) {
-        return isPrimaryThread(); // Youer TODO
+        return this.isActualServerThread() || ThreadedServer.owns(world, ((int) Math.floor(position.x())) >> 4, ((int) Math.floor(position.z())) >> 4);
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(World world, io.papermc.paper.math.Position position, int squareRadiusChunks) {
-        return isPrimaryThread(); // Youer TODO
+        return this.isActualServerThread() || ThreadedServer.owns(world, ((int) Math.floor(position.x())) >> 4, ((int) Math.floor(position.z())) >> 4, squareRadiusChunks);
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(Location location) {
-        return isPrimaryThread(); // Youer TODO
+        return this.isActualServerThread() || ThreadedServer.owns(location);
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(Location location, int squareRadiusChunks) {
-        return isPrimaryThread(); // Youer TODO
+        return this.isActualServerThread() || ThreadedServer.owns(location, squareRadiusChunks);
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ) {
-        return isPrimaryThread(); // Youer TODO
+        return this.isActualServerThread() || ThreadedServer.owns(world, chunkX, chunkZ);
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ, int squareRadiusChunks) {
-        return isPrimaryThread(); // Youer TODO
+        return this.isActualServerThread() || ThreadedServer.owns(world, chunkX, chunkZ, squareRadiusChunks);
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(Entity entity) {
-        return isPrimaryThread(); // Youer TODO
+        return this.isActualServerThread() || ThreadedServer.owns(entity);
+    }
+
+    private boolean isActualServerThread() {
+        return Thread.currentThread() == this.console.serverThread;
     }
     // Paper end - Folia reagion threading API
 
@@ -1033,17 +1038,19 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean dispatchCommand(CommandSender sender, String commandLine) {
-        Preconditions.checkArgument(sender != null, "sender cannot be null");
-        Preconditions.checkArgument(commandLine != null, "commandLine cannot be null");
-        org.spigotmc.AsyncCatcher.catchOp("Command Dispatched Async: " + commandLine); // Spigot // Paper - Include command in error message
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(sender != null, "sender cannot be null");
+            Preconditions.checkArgument(commandLine != null, "commandLine cannot be null");
+            org.spigotmc.AsyncCatcher.catchOp("Command Dispatched Async: " + commandLine); // Spigot // Paper - Include command in error message
 
-        commandLine = commandLine(sender, commandLine);
-        if (commandLine == null) return false;
-        if (commandMap.dispatch(sender, commandLine)) {
-            return true;
-        }
+            String processedCommandLine = commandLine(sender, commandLine);
+            if (processedCommandLine == null) return false;
+            if (commandMap.dispatch(sender, processedCommandLine)) {
+                return true;
+            }
 
-        return this.dispatchCommand(VanillaCommandWrapper.getListener(sender), commandLine);
+            return this.dispatchCommand(VanillaCommandWrapper.getListener(sender), processedCommandLine);
+        });
     }
 
     public boolean dispatchCommand(CommandSourceStack sourceStack, String commandLine) {
@@ -1242,18 +1249,27 @@ public final class CraftServer implements Server {
 
     @Override
     public void reloadData() {
-        ReloadCommand.reload(this.console);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            ReloadCommand.reload(this.console);
+            return null;
+        });
     }
 
     // Paper start - API for updating recipes on clients
     @Override
     public void updateResources() {
-        this.playerList.reloadResources();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.playerList.reloadResources();
+            return null;
+        });
     }
 
     @Override
     public void updateRecipes() {
-        this.playerList.reloadRecipeData();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.playerList.reloadRecipeData();
+            return null;
+        });
     }
     // Paper end - API for updating recipes on clients
 
@@ -1658,8 +1674,11 @@ public final class CraftServer implements Server {
 
     @Override
     public void savePlayers() {
-        this.checkSaveState();
-        this.playerList.saveAll();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.checkSaveState();
+            this.playerList.saveAll();
+            return null;
+        });
     }
 
     @Override
@@ -1670,54 +1689,62 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean addRecipe(Recipe recipe, boolean resendRecipes) {
-        // Paper end - API for updating recipes on clients
-        CraftRecipe toAdd;
-        if (recipe instanceof CraftRecipe) {
-            toAdd = (CraftRecipe) recipe;
-        } else {
-            if (recipe instanceof ShapedRecipe) {
-                toAdd = CraftShapedRecipe.fromBukkitRecipe((ShapedRecipe) recipe);
-            } else if (recipe instanceof ShapelessRecipe) {
-                toAdd = CraftShapelessRecipe.fromBukkitRecipe((ShapelessRecipe) recipe);
-            } else if (recipe instanceof FurnaceRecipe) {
-                toAdd = CraftFurnaceRecipe.fromBukkitRecipe((FurnaceRecipe) recipe);
-            } else if (recipe instanceof BlastingRecipe) {
-                toAdd = CraftBlastingRecipe.fromBukkitRecipe((BlastingRecipe) recipe);
-            } else if (recipe instanceof CampfireRecipe) {
-                toAdd = CraftCampfireRecipe.fromBukkitRecipe((CampfireRecipe) recipe);
-            } else if (recipe instanceof SmokingRecipe) {
-                toAdd = CraftSmokingRecipe.fromBukkitRecipe((SmokingRecipe) recipe);
-            } else if (recipe instanceof StonecuttingRecipe) {
-                toAdd = CraftStonecuttingRecipe.fromBukkitRecipe((StonecuttingRecipe) recipe);
-            } else if (recipe instanceof SmithingTransformRecipe) {
-                toAdd = CraftSmithingTransformRecipe.fromBukkitRecipe((SmithingTransformRecipe) recipe);
-            } else if (recipe instanceof SmithingTrimRecipe) {
-                toAdd = CraftSmithingTrimRecipe.fromBukkitRecipe((SmithingTrimRecipe) recipe);
-            } else if (recipe instanceof ComplexRecipe) {
-                throw new UnsupportedOperationException("Cannot add custom complex recipe");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            // Paper end - API for updating recipes on clients
+            CraftRecipe toAdd;
+            if (recipe instanceof CraftRecipe) {
+                toAdd = (CraftRecipe) recipe;
             } else {
-                return false;
+                if (recipe instanceof ShapedRecipe) {
+                    toAdd = CraftShapedRecipe.fromBukkitRecipe((ShapedRecipe) recipe);
+                } else if (recipe instanceof ShapelessRecipe) {
+                    toAdd = CraftShapelessRecipe.fromBukkitRecipe((ShapelessRecipe) recipe);
+                } else if (recipe instanceof FurnaceRecipe) {
+                    toAdd = CraftFurnaceRecipe.fromBukkitRecipe((FurnaceRecipe) recipe);
+                } else if (recipe instanceof BlastingRecipe) {
+                    toAdd = CraftBlastingRecipe.fromBukkitRecipe((BlastingRecipe) recipe);
+                } else if (recipe instanceof CampfireRecipe) {
+                    toAdd = CraftCampfireRecipe.fromBukkitRecipe((CampfireRecipe) recipe);
+                } else if (recipe instanceof SmokingRecipe) {
+                    toAdd = CraftSmokingRecipe.fromBukkitRecipe((SmokingRecipe) recipe);
+                } else if (recipe instanceof StonecuttingRecipe) {
+                    toAdd = CraftStonecuttingRecipe.fromBukkitRecipe((StonecuttingRecipe) recipe);
+                } else if (recipe instanceof SmithingTransformRecipe) {
+                    toAdd = CraftSmithingTransformRecipe.fromBukkitRecipe((SmithingTransformRecipe) recipe);
+                } else if (recipe instanceof SmithingTrimRecipe) {
+                    toAdd = CraftSmithingTrimRecipe.fromBukkitRecipe((SmithingTrimRecipe) recipe);
+                } else if (recipe instanceof ComplexRecipe) {
+                    throw new UnsupportedOperationException("Cannot add custom complex recipe");
+                } else {
+                    return false;
+                }
             }
-        }
-        toAdd.addToCraftingManager();
-        // Paper start - API for updating recipes on clients
-        if (resendRecipes) {
-            this.playerList.reloadRecipeData();
-        }
-        // Paper end - API for updating recipes on clients
-        return true;
+            toAdd.addToCraftingManager();
+            // Paper start - API for updating recipes on clients
+            if (resendRecipes) {
+                this.playerList.reloadRecipeData();
+            }
+            // Paper end - API for updating recipes on clients
+            return true;
+        });
     }
 
     // Purpur Start
     @Override
     public void addFuel(org.bukkit.Material material, int burnTime) {
-        Preconditions.checkArgument(burnTime > 0, "BurnTime must be greater than 0");
-        net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity.addFuel(net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material)), burnTime);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(burnTime > 0, "BurnTime must be greater than 0");
+            net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity.addFuel(net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material)), burnTime);
+            return null;
+        });
     }
 
     @Override
     public void removeFuel(org.bukkit.Material material) {
-        net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity.removeFuel(net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material)));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity.removeFuel(net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material)));
+            return null;
+        });
     }
 
     @Override
@@ -1737,7 +1764,10 @@ public final class CraftServer implements Server {
 
     @Override
     public void sendBlockHighlight(Location location, int duration, String text, int argb) {
-        this.worlds.forEach((name, world) -> world.sendBlockHighlight(location, duration, text, argb));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.worlds.forEach((name, world) -> world.sendBlockHighlight(location, duration, text, argb));
+            return null;
+        });
     }
 
     @Override
@@ -1753,7 +1783,10 @@ public final class CraftServer implements Server {
 
     @Override
     public void clearBlockHighlights() {
-        this.worlds.forEach((name, world) -> clearBlockHighlights());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.worlds.forEach((name, world) -> world.clearBlockHighlights());
+            return null;
+        });
     }
     // Purpur End
 
@@ -1924,12 +1957,18 @@ public final class CraftServer implements Server {
 
     @Override
     public void clearRecipes() {
-        this.console.getRecipeManager().clearRecipes();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.console.getRecipeManager().clearRecipes();
+            return null;
+        });
     }
 
     @Override
     public void resetRecipes() {
-        this.reloadData(); // Not ideal but hard to reload a subset of a resource pack
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.reloadData(); // Not ideal but hard to reload a subset of a resource pack
+            return null;
+        });
     }
 
     @Override
@@ -1940,17 +1979,19 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean removeRecipe(NamespacedKey recipeKey, boolean resendRecipes) {
-        // Paper end - API for updating recipes on clients
-        Preconditions.checkArgument(recipeKey != null, "recipeKey == null");
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            // Paper end - API for updating recipes on clients
+            Preconditions.checkArgument(recipeKey != null, "recipeKey == null");
 
-        ResourceLocation mcKey = CraftNamespacedKey.toMinecraft(recipeKey);
-        // Paper start - resend recipes on successful removal
-        boolean removed = this.getServer().getRecipeManager().removeRecipe(mcKey);
-        if (removed && resendRecipes) {
-            this.playerList.reloadRecipeData();
-        }
-        return removed;
-        // Paper end
+            ResourceLocation mcKey = CraftNamespacedKey.toMinecraft(recipeKey);
+            // Paper start - resend recipes on successful removal
+            boolean removed = this.getServer().getRecipeManager().removeRecipe(mcKey);
+            if (removed && resendRecipes) {
+                this.playerList.reloadRecipeData();
+            }
+            return removed;
+            // Paper end
+        });
     }
 
     @Override
@@ -2003,8 +2044,11 @@ public final class CraftServer implements Server {
 
     @Override
     public void setSpawnRadius(int value) {
-        this.configuration.set("settings.spawn-radius", value);
-        this.saveConfig();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.configuration.set("settings.spawn-radius", value);
+            this.saveConfig();
+            return null;
+        });
     }
 
     @Override
@@ -2749,7 +2793,7 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean isPrimaryThread() {
-        return Thread.currentThread().equals(this.console.serverThread) || this.console.hasStopped() || !org.spigotmc.AsyncCatcher.enabled; // All bets are off if we have shut down (e.g. due to watchdog)
+        return Thread.currentThread().equals(this.console.serverThread) || ThreadedServer.isRegionThread() || this.console.hasStopped() || !org.spigotmc.AsyncCatcher.enabled; // All bets are off if we have shut down (e.g. due to watchdog)
     }
 
     // Paper start - Adventure

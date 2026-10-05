@@ -129,7 +129,7 @@
                  }
              }
  
-@@ -233,6 +_,15 @@
+@@ -233,9 +_,19 @@
          }
      }
  
@@ -145,6 +145,10 @@
      @Nullable
      @Override
      public BlockState setBlockState(BlockPos p_62865_, BlockState p_62866_, boolean p_62867_) {
++        com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this.level, p_62865_);
+         int i = p_62865_.getY();
+         LevelChunkSection levelchunksection = this.getSection(this.getSectionIndex(i));
+         boolean flag = levelchunksection.hasOnlyAir();
 @@ -278,7 +_,8 @@
                  if (!levelchunksection.getBlockState(j, k, l).is(block)) {
                      return null;
@@ -184,7 +188,11 @@
          }
      }
  
-@@ -383,6 +_,7 @@
+@@ -380,9 +_,11 @@
+     @Override
+     public void setBlockEntity(BlockEntity p_156374_) {
+         BlockPos blockpos = p_156374_.getBlockPos();
++        com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this.level, blockpos);
          BlockState blockstate = this.getBlockState(blockpos);
          if (!blockstate.hasBlockEntity()) {
              LOGGER.warn("Trying to set block entity {} at position {}, but state {} does not allow it", p_156374_, blockpos, blockstate);
@@ -215,8 +223,11 @@
          } else {
              CompoundTag compoundtag = this.pendingBlockEntities.get(p_62932_);
              if (compoundtag != null) {
-@@ -430,12 +_,20 @@
+@@ -428,14 +_,23 @@
+ 
+     @Override
      public void removeBlockEntity(BlockPos p_62919_) {
++        com.mohistmc.youer.threading.ThreadedServer.requireOwnedForWrite(this.level, p_62919_);
          if (this.isInLevel()) {
              BlockEntity blockentity = this.blockEntities.remove(p_62919_);
 +

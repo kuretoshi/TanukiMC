@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.projectile.Fireball;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.CraftServer;
@@ -24,7 +25,10 @@ public class CraftSizedFireball extends CraftFireball implements SizedFireball {
 
     @Override
     public void setDisplayItem(ItemStack item) {
-        this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
+            return null;
+        });
     }
 
     @Override

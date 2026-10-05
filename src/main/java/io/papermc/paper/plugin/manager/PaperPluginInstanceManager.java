@@ -270,6 +270,13 @@ class PaperPluginInstanceManager {
         }
 
         try {
+            com.mohistmc.youer.threading.ThreadedRegionScheduler.cancelPluginTasks(plugin);
+        } catch (Throwable ex) {
+            this.handlePluginException("Error occurred (in the plugin loader) while cancelling region tasks for "
+                    + pluginName + " (Is it up to date?)", ex, plugin); // Youer
+        }
+
+        try {
             this.server.getAsyncScheduler().cancelTasks(plugin);
         } catch (Throwable ex) {
             this.handlePluginException("Error occurred (in the plugin loader) while cancelling async tasks for "

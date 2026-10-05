@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
@@ -29,8 +30,11 @@ public class CraftBlockDisplay extends CraftDisplay implements BlockDisplay {
 
     @Override
     public void setBlock(BlockData block) {
-        Preconditions.checkArgument(block != null, "Block cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(block != null, "Block cannot be null");
 
-        this.getHandle().setBlockState(((CraftBlockData) block).getState());
+            this.getHandle().setBlockState(((CraftBlockData) block).getState());
+            return null;
+        });
     }
 }

@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -35,15 +36,18 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
 
     @Override
     public void setSpawnedType(EntityType entityType) {
-        if (entityType == null) {
-            getHandle().getSpawner().spawnPotentials = SimpleWeightedRandomList.empty(); // need clear the spawnPotentials to avoid nextSpawnData being replaced later
-            getHandle().getSpawner().nextSpawnData = new SpawnData();
-            return;
-        }
-        Preconditions.checkArgument(entityType != EntityType.UNKNOWN, "Can't spawn EntityType %s from mob spawners!", entityType);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (entityType == null) {
+                getHandle().getSpawner().spawnPotentials = SimpleWeightedRandomList.empty(); // need clear the spawnPotentials to avoid nextSpawnData being replaced later
+                getHandle().getSpawner().nextSpawnData = new SpawnData();
+                return null;
+            }
+            Preconditions.checkArgument(entityType != EntityType.UNKNOWN, "Can't spawn EntityType %s from mob spawners!", entityType);
 
-        RandomSource rand = getHandle().level().getRandom();
-        getHandle().getSpawner().setEntityId(CraftEntityType.bukkitToMinecraft(entityType), getHandle().level(), rand, getHandle().blockPosition());
+            RandomSource rand = getHandle().level().getRandom();
+            getHandle().getSpawner().setEntityId(CraftEntityType.bukkitToMinecraft(entityType), getHandle().level(), rand, getHandle().blockPosition());
+            return null;
+        });
     }
 
     @Override
@@ -58,31 +62,46 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
 
     @Override
     public void setSpawnedEntity(EntitySnapshot snapshot) {
-        CraftCreatureSpawner.setSpawnedEntity(getHandle().getSpawner(), snapshot, null, null);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftCreatureSpawner.setSpawnedEntity(getHandle().getSpawner(), snapshot, null, null);
+            return null;
+        });
     }
 
     @Override
     public void setSpawnedEntity(SpawnerEntry spawnerEntry) {
         Preconditions.checkArgument(spawnerEntry != null, "Entry cannot be null");
 
-        CraftCreatureSpawner.setSpawnedEntity(getHandle().getSpawner(), spawnerEntry.getSnapshot(), spawnerEntry.getSpawnRule(), spawnerEntry.getEquipment());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftCreatureSpawner.setSpawnedEntity(getHandle().getSpawner(), spawnerEntry.getSnapshot(), spawnerEntry.getSpawnRule(), spawnerEntry.getEquipment());
+            return null;
+        });
     }
 
     @Override
     public void addPotentialSpawn(EntitySnapshot snapshot, int weight, SpawnRule spawnRule) {
-        CraftCreatureSpawner.addPotentialSpawn(getHandle().getSpawner(), snapshot, weight, spawnRule, null);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftCreatureSpawner.addPotentialSpawn(getHandle().getSpawner(), snapshot, weight, spawnRule, null);
+            return null;
+        });
     }
 
     @Override
     public void addPotentialSpawn(SpawnerEntry spawnerEntry) {
         Preconditions.checkArgument(spawnerEntry != null, "Entry cannot be null");
 
-        CraftCreatureSpawner.addPotentialSpawn(getHandle().getSpawner(), spawnerEntry.getSnapshot(), spawnerEntry.getSpawnWeight(), spawnerEntry.getSpawnRule(), spawnerEntry.getEquipment());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftCreatureSpawner.addPotentialSpawn(getHandle().getSpawner(), spawnerEntry.getSnapshot(), spawnerEntry.getSpawnWeight(), spawnerEntry.getSpawnRule(), spawnerEntry.getEquipment());
+            return null;
+        });
     }
 
     @Override
     public void setPotentialSpawns(Collection<SpawnerEntry> entries) {
-        CraftCreatureSpawner.setPotentialSpawns(getHandle().getSpawner(), entries);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            CraftCreatureSpawner.setPotentialSpawns(getHandle().getSpawner(), entries);
+            return null;
+        });
     }
 
     @Override
@@ -97,7 +116,10 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
 
     @Override
     public void setDelay(int delay) {
-        getHandle().getSpawner().spawnDelay = delay;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getSpawner().spawnDelay = delay;
+            return null;
+        });
     }
 
     @Override
@@ -108,7 +130,10 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
     @Override
     public void setMinSpawnDelay(int spawnDelay) {
         Preconditions.checkArgument(spawnDelay <= getMaxSpawnDelay(), "Minimum Spawn Delay must be less than or equal to Maximum Spawn Delay");
-        getHandle().getSpawner().minSpawnDelay = spawnDelay;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getSpawner().minSpawnDelay = spawnDelay;
+            return null;
+        });
     }
 
     @Override
@@ -120,7 +145,10 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
     public void setMaxSpawnDelay(int spawnDelay) {
         Preconditions.checkArgument(spawnDelay > 0, "Maximum Spawn Delay must be greater than 0.");
         Preconditions.checkArgument(spawnDelay >= getMinSpawnDelay(), "Maximum Spawn Delay must be greater than or equal to Minimum Spawn Delay");
-        getHandle().getSpawner().maxSpawnDelay = spawnDelay;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getSpawner().maxSpawnDelay = spawnDelay;
+            return null;
+        });
     }
 
     @Override
@@ -130,7 +158,10 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
 
     @Override
     public void setMaxNearbyEntities(int maxNearbyEntities) {
-        getHandle().getSpawner().maxNearbyEntities = maxNearbyEntities;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getSpawner().maxNearbyEntities = maxNearbyEntities;
+            return null;
+        });
     }
 
     @Override
@@ -140,7 +171,10 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
 
     @Override
     public void setSpawnCount(int count) {
-        getHandle().getSpawner().spawnCount = count;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getSpawner().spawnCount = count;
+            return null;
+        });
     }
 
     @Override
@@ -150,7 +184,10 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
 
     @Override
     public void setRequiredPlayerRange(int requiredPlayerRange) {
-        getHandle().getSpawner().requiredPlayerRange = requiredPlayerRange;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getSpawner().requiredPlayerRange = requiredPlayerRange;
+            return null;
+        });
     }
 
     @Override
@@ -160,7 +197,10 @@ public final class CraftMinecartMobSpawner extends CraftMinecart implements Spaw
 
     @Override
     public void setSpawnRange(int spawnRange) {
-        getHandle().getSpawner().spawnRange = spawnRange;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getSpawner().spawnRange = spawnRange;
+            return null;
+        });
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.destroystokyo.paper.entity.CraftRangedEntity;
 import java.util.Collections;
 import java.util.Set;
@@ -26,7 +27,10 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
 
     @Override
     public void setIsAbleToHunt(boolean flag) {
-        this.getHandle().cannotHunt = flag;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().cannotHunt = flag;
+            return null;
+        });
     }
 
     @Override
@@ -34,7 +38,7 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
         Preconditions.checkArgument(material != null, "material cannot be null");
 
         Item item = CraftItemType.bukkitToMinecraft(material);
-        return this.getHandle().allowedBarterItems.add(item);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> this.getHandle().allowedBarterItems.add(item));
     }
 
     @Override
@@ -42,7 +46,7 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
         Preconditions.checkArgument(material != null, "material cannot be null");
 
         Item item = CraftItemType.bukkitToMinecraft(material);
-        return this.getHandle().allowedBarterItems.remove(item);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> this.getHandle().allowedBarterItems.remove(item));
     }
 
     @Override
@@ -50,7 +54,7 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
         Preconditions.checkArgument(material != null, "material cannot be null");
 
         Item item = CraftItemType.bukkitToMinecraft(material);
-        return this.getHandle().interestItems.add(item);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> this.getHandle().interestItems.add(item));
     }
 
     @Override
@@ -58,7 +62,7 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
         Preconditions.checkArgument(material != null, "material cannot be null");
 
         Item item = CraftItemType.bukkitToMinecraft(material);
-        return this.getHandle().interestItems.remove(item);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> this.getHandle().interestItems.remove(item));
     }
 
     @Override
@@ -88,7 +92,10 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
     // Paper start
     @Override
     public void setChargingCrossbow(boolean chargingCrossbow) {
-        this.getHandle().setChargingCrossbow(chargingCrossbow);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setChargingCrossbow(chargingCrossbow);
+            return null;
+        });
     }
 
     @Override
@@ -98,19 +105,25 @@ public class CraftPiglin extends CraftPiglinAbstract implements Piglin, CraftRan
 
     @Override
     public void setDancing(boolean dancing) {
-        if (dancing) {
-            this.getHandle().getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING, true);
-            this.getHandle().getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION, this.getHandle().getOnPos());
-        } else {
-            this.getHandle().getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING);
-            this.getHandle().getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION);
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (dancing) {
+                this.getHandle().getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING, true);
+                this.getHandle().getBrain().setMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION, this.getHandle().getOnPos());
+            } else {
+                this.getHandle().getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING);
+                this.getHandle().getBrain().eraseMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION);
+            }
+            return null;
+        });
     }
 
     @Override
     public void setDancing(long duration) {
-        this.getHandle().getBrain().setMemoryWithExpiry(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING, true, duration);
-        this.getHandle().getBrain().setMemoryWithExpiry(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION, this.getHandle().getOnPos(), duration);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().getBrain().setMemoryWithExpiry(net.minecraft.world.entity.ai.memory.MemoryModuleType.DANCING, true, duration);
+            this.getHandle().getBrain().setMemoryWithExpiry(net.minecraft.world.entity.ai.memory.MemoryModuleType.CELEBRATE_LOCATION, this.getHandle().getOnPos(), duration);
+            return null;
+        });
     }
 
     @Override

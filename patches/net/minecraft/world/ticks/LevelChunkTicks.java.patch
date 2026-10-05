@@ -1,0 +1,149 @@
+--- a/net/minecraft/world/ticks/LevelChunkTicks.java
++++ b/net/minecraft/world/ticks/LevelChunkTicks.java
+@@ -30,24 +_,24 @@
+     }
+ 
+     public LevelChunkTicks(List<SavedTick<T>> p_193169_) {
+-        this.pendingTicks = p_193169_;
++        this.pendingTicks = List.copyOf(p_193169_);
+ 
+-        for (SavedTick<T> savedtick : p_193169_) {
++        for (SavedTick<T> savedtick : this.pendingTicks) {
+             this.ticksPerPosition.add(ScheduledTick.probe(savedtick.type(), savedtick.pos()));
+         }
+     }
+ 
+-    public void setOnTickAdded(@Nullable BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> p_193182_) {
++    public synchronized void setOnTickAdded(@Nullable BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> p_193182_) {
+         this.onTickAdded = p_193182_;
+     }
+ 
+     @Nullable
+-    public ScheduledTick<T> peek() {
++    public synchronized ScheduledTick<T> peek() {
+         return this.tickQueue.peek();
+     }
+ 
+     @Nullable
+-    public ScheduledTick<T> poll() {
++    public synchronized ScheduledTick<T> poll() {
+         ScheduledTick<T> scheduledtick = this.tickQueue.poll();
+         if (scheduledtick != null) {
+             this.ticksPerPosition.remove(scheduledtick);
+@@ -58,53 +_,60 @@
+ 
+     @Override
+     public void schedule(ScheduledTick<T> p_193177_) {
+-        if (this.ticksPerPosition.add(p_193177_)) {
+-            this.scheduleUnchecked(p_193177_);
++        BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> callback;
++        synchronized (this) {
++            if (!this.ticksPerPosition.add(p_193177_)) {
++                return;
++            }
++            this.tickQueue.add(p_193177_);
++            callback = this.onTickAdded;
+         }
+-    }
+-
+-    private void scheduleUnchecked(ScheduledTick<T> p_193194_) {
+-        this.tickQueue.add(p_193194_);
+-        if (this.onTickAdded != null) {
+-            this.onTickAdded.accept(this, p_193194_);
++        if (callback != null) {
++            callback.accept(this, p_193177_);
+         }
+     }
+ 
+     @Override
+-    public boolean hasScheduledTick(BlockPos p_193179_, T p_193180_) {
++    public synchronized boolean hasScheduledTick(BlockPos p_193179_, T p_193180_) {
+         return this.ticksPerPosition.contains(ScheduledTick.probe(p_193180_, p_193179_));
+     }
+ 
+     public void removeIf(Predicate<ScheduledTick<T>> p_193184_) {
+-        Iterator<ScheduledTick<T>> iterator = this.tickQueue.iterator();
+-
+-        while (iterator.hasNext()) {
+-            ScheduledTick<T> scheduledtick = iterator.next();
+-            if (p_193184_.test(scheduledtick)) {
+-                iterator.remove();
+-                this.ticksPerPosition.remove(scheduledtick);
+-            }
++        Set<ScheduledTick<T>> selected = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
++        this.getAll().filter(p_193184_).forEach(selected::add);
++        synchronized (this) {
++            this.tickQueue.removeIf(tick -> {
++                if (!selected.contains(tick)) {
++                    return false;
++                }
++                this.ticksPerPosition.remove(tick);
++                return true;
++            });
+         }
+     }
+ 
+-    public Stream<ScheduledTick<T>> getAll() {
+-        return this.tickQueue.stream();
++    public synchronized Stream<ScheduledTick<T>> getAll() {
++        return List.copyOf(this.tickQueue).stream();
+     }
+ 
+     @Override
+-    public int count() {
++    public synchronized int count() {
+         return this.tickQueue.size() + (this.pendingTicks != null ? this.pendingTicks.size() : 0);
+     }
+ 
+     public ListTag save(long p_193174_, Function<T, String> p_193175_) {
++        List<SavedTick<T>> pending;
++        List<ScheduledTick<T>> scheduled;
++        synchronized (this) {
++            pending = this.pendingTicks == null ? List.of() : this.pendingTicks;
++            scheduled = List.copyOf(this.tickQueue);
++        }
+         ListTag listtag = new ListTag();
+-        if (this.pendingTicks != null) {
+-            for (SavedTick<T> savedtick : this.pendingTicks) {
+-                listtag.add(savedtick.save(p_193175_));
+-            }
++        for (SavedTick<T> savedtick : pending) {
++            listtag.add(savedtick.save(p_193175_));
+         }
+ 
+-        for (ScheduledTick<T> scheduledtick : this.tickQueue) {
++        for (ScheduledTick<T> scheduledtick : scheduled) {
+             listtag.add(SavedTick.saveTick(scheduledtick, p_193175_, p_193174_));
+         }
+ 
+@@ -112,15 +_,24 @@
+     }
+ 
+     public void unpack(long p_193172_) {
+-        if (this.pendingTicks != null) {
++        List<ScheduledTick<T>> unpacked = new java.util.ArrayList<>();
++        BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> callback;
++        synchronized (this) {
++            if (this.pendingTicks == null) {
++                return;
++            }
+             int i = -this.pendingTicks.size();
+-
+             for (SavedTick<T> savedtick : this.pendingTicks) {
+-                this.scheduleUnchecked(savedtick.unpack(p_193172_, (long)(i++)));
++                ScheduledTick<T> tick = savedtick.unpack(p_193172_, (long)(i++));
++                this.tickQueue.add(tick);
++                unpacked.add(tick);
+             }
+-        }
+-
+-        this.pendingTicks = null;
++            this.pendingTicks = null;
++            callback = this.onTickAdded;
++        }
++        if (callback != null) {
++            unpacked.forEach(tick -> callback.accept(this, tick));
++        }
+     }
+ 
+     public static <T> LevelChunkTicks<T> load(ListTag p_193186_, Function<String, Optional<T>> p_193187_, ChunkPos p_193188_) {

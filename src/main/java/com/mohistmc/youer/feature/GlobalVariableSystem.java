@@ -72,7 +72,7 @@ public class GlobalVariableSystem {
                 globalVariables.put("server_version", Bukkit.getServer().getVersion());
             } catch (Exception ignored) {
                 // Fallback values in case of exception
-                globalVariables.put("server_name", "Youer Server");
+                globalVariables.put("server_name", "TanukiMC Server");
                 globalVariables.put("server_version", "Unknown");
             }
         });

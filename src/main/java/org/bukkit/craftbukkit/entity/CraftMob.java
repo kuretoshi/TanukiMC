@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import org.bukkit.Sound;
@@ -18,16 +19,19 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public void setTarget(LivingEntity target) {
-        Preconditions.checkState(!this.getHandle().generation, "Cannot set target during world generation");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkState(!this.getHandle().generation, "Cannot set target during world generation");
 
-        net.minecraft.world.entity.Mob entity = this.getHandle();
-        if (target == null) {
-            entity.setTargetReason(null, false);
-            entity.setTarget(null);
-        } else if (target instanceof CraftLivingEntity) {
-            entity.setTargetReason(null, false);
-            entity.setTarget(((CraftLivingEntity) target).getHandle());
-        }
+            net.minecraft.world.entity.Mob entity = this.getHandle();
+            if (target == null) {
+                entity.setTargetReason(null, false);
+                entity.setTarget(null);
+            } else if (target instanceof CraftLivingEntity) {
+                entity.setTargetReason(null, false);
+                entity.setTarget(((CraftLivingEntity) target).getHandle());
+            }
+            return null;
+        });
     }
 
     @Override
@@ -39,7 +43,10 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public void setAware(boolean aware) {
-        this.getHandle().aware = aware;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().aware = aware;
+            return null;
+        });
     }
 
     @Override
@@ -65,7 +72,10 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public void setLootTable(LootTable table) {
-        this.getHandle().lootTable = CraftLootTable.bukkitToMinecraft(table);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().lootTable = CraftLootTable.bukkitToMinecraft(table);
+            return null;
+        });
     }
 
     @Override
@@ -75,7 +85,10 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public void setSeed(long seed) {
-        this.getHandle().lootTableSeed = seed;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().lootTableSeed = seed;
+            return null;
+        });
     }
 
     @Override
@@ -91,40 +104,58 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public void lookAt(@org.jetbrains.annotations.NotNull org.bukkit.Location location) {
-        com.google.common.base.Preconditions.checkNotNull(location, "location cannot be null");
-        com.google.common.base.Preconditions.checkArgument(location.getWorld().equals(getWorld()), "location in a different world");
-        getHandle().getLookControl().setLookAt(location.getX(), location.getY(), location.getZ());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            com.google.common.base.Preconditions.checkNotNull(location, "location cannot be null");
+            com.google.common.base.Preconditions.checkArgument(location.getWorld().equals(getWorld()), "location in a different world");
+            getHandle().getLookControl().setLookAt(location.getX(), location.getY(), location.getZ());
+            return null;
+        });
     }
 
     @Override
     public void lookAt(@org.jetbrains.annotations.NotNull org.bukkit.Location location, float headRotationSpeed, float maxHeadPitch) {
-        com.google.common.base.Preconditions.checkNotNull(location, "location cannot be null");
-        com.google.common.base.Preconditions.checkArgument(location.getWorld().equals(getWorld()), "location in a different world");
-        getHandle().getLookControl().setLookAt(location.getX(), location.getY(), location.getZ(), headRotationSpeed, maxHeadPitch);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            com.google.common.base.Preconditions.checkNotNull(location, "location cannot be null");
+            com.google.common.base.Preconditions.checkArgument(location.getWorld().equals(getWorld()), "location in a different world");
+            getHandle().getLookControl().setLookAt(location.getX(), location.getY(), location.getZ(), headRotationSpeed, maxHeadPitch);
+            return null;
+        });
     }
 
     @Override
     public void lookAt(@org.jetbrains.annotations.NotNull org.bukkit.entity.Entity entity) {
-        com.google.common.base.Preconditions.checkNotNull(entity, "entity cannot be null");
-        com.google.common.base.Preconditions.checkArgument(entity.getWorld().equals(getWorld()), "entity in a different world");
-        getHandle().getLookControl().setLookAt(((CraftEntity) entity).getHandle());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            com.google.common.base.Preconditions.checkNotNull(entity, "entity cannot be null");
+            com.google.common.base.Preconditions.checkArgument(entity.getWorld().equals(getWorld()), "entity in a different world");
+            getHandle().getLookControl().setLookAt(((CraftEntity) entity).getHandle());
+            return null;
+        });
     }
 
     @Override
     public void lookAt(@org.jetbrains.annotations.NotNull org.bukkit.entity.Entity entity, float headRotationSpeed, float maxHeadPitch) {
-        com.google.common.base.Preconditions.checkNotNull(entity, "entity cannot be null");
-        com.google.common.base.Preconditions.checkArgument(entity.getWorld().equals(getWorld()), "entity in a different world");
-        getHandle().getLookControl().setLookAt(((CraftEntity) entity).getHandle(), headRotationSpeed, maxHeadPitch);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            com.google.common.base.Preconditions.checkNotNull(entity, "entity cannot be null");
+            com.google.common.base.Preconditions.checkArgument(entity.getWorld().equals(getWorld()), "entity in a different world");
+            getHandle().getLookControl().setLookAt(((CraftEntity) entity).getHandle(), headRotationSpeed, maxHeadPitch);
+            return null;
+        });
     }
 
     @Override
     public void lookAt(double x, double y, double z) {
-        getHandle().getLookControl().setLookAt(x, y, z);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getLookControl().setLookAt(x, y, z);
+            return null;
+        });
     }
 
     @Override
     public void lookAt(double x, double y, double z, float headRotationSpeed, float maxHeadPitch) {
-        getHandle().getLookControl().setLookAt(x, y, z, headRotationSpeed, maxHeadPitch);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().getLookControl().setLookAt(x, y, z, headRotationSpeed, maxHeadPitch);
+            return null;
+        });
     }
 
     @Override
@@ -144,7 +175,10 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public void setLeftHanded(boolean leftHanded) {
-        getHandle().setLeftHanded(leftHanded);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setLeftHanded(leftHanded);
+            return null;
+        });
     }
     // Paper end
 
@@ -156,7 +190,10 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public void setAggressive(boolean aggressive) {
-        this.getHandle().setAggressive(aggressive);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setAggressive(aggressive);
+            return null;
+        });
     }
     // Paper end
 
@@ -180,7 +217,7 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
 
     @Override
     public boolean setLeashHolder(final org.bukkit.entity.Entity holder) {
-        return io.papermc.paper.entity.PaperLeashable.super.setLeashHolder(holder);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> io.papermc.paper.entity.PaperLeashable.super.setLeashHolder(holder));
     }
     // Paper end - Leashable API
 }

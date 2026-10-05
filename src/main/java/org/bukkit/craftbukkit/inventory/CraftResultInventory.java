@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.inventory;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.Container;
 import org.bukkit.inventory.ItemStack;
 
@@ -33,11 +34,14 @@ public class CraftResultInventory extends CraftInventory {
 
     @Override
     public void setItem(int index, ItemStack item) {
-        if (index < this.getIngredientsInventory().getContainerSize()) {
-            this.getIngredientsInventory().setItem(index, CraftItemStack.asNMSCopy(item));
-        } else {
-            this.getResultInventory().setItem((index - this.getIngredientsInventory().getContainerSize()), CraftItemStack.asNMSCopy(item));
-        }
+        ThreadedServer.withWorldMutationLock(() -> {
+            if (index < this.getIngredientsInventory().getContainerSize()) {
+                this.getIngredientsInventory().setItem(index, CraftItemStack.asNMSCopy(item));
+            } else {
+                this.getResultInventory().setItem((index - this.getIngredientsInventory().getContainerSize()), CraftItemStack.asNMSCopy(item));
+            }
+            return null;
+        });
     }
 
     @Override

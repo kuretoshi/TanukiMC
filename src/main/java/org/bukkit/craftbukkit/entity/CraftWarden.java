@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.monster.warden.WardenAi;
@@ -46,24 +47,33 @@ public class CraftWarden extends CraftMonster implements org.bukkit.entity.Warde
 
     @Override
     public void increaseAnger(Entity entity, int increase) {
-        Preconditions.checkArgument(entity != null, "Entity cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(entity != null, "Entity cannot be null");
 
-        this.getHandle().getAngerManagement().increaseAnger(((CraftEntity) entity).getHandle(), increase);
+            this.getHandle().getAngerManagement().increaseAnger(((CraftEntity) entity).getHandle(), increase);
+            return null;
+        });
     }
 
     @Override
     public void setAnger(Entity entity, int anger) {
-        Preconditions.checkArgument(entity != null, "Entity cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(entity != null, "Entity cannot be null");
 
-        this.getHandle().clearAnger(((CraftEntity) entity).getHandle());
-        this.getHandle().getAngerManagement().increaseAnger(((CraftEntity) entity).getHandle(), anger);
+            this.getHandle().clearAnger(((CraftEntity) entity).getHandle());
+            this.getHandle().getAngerManagement().increaseAnger(((CraftEntity) entity).getHandle(), anger);
+            return null;
+        });
     }
 
     @Override
     public void clearAnger(Entity entity) {
-        Preconditions.checkArgument(entity != null, "Entity cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(entity != null, "Entity cannot be null");
 
-        this.getHandle().clearAnger(((CraftEntity) entity).getHandle());
+            this.getHandle().clearAnger(((CraftEntity) entity).getHandle());
+            return null;
+        });
     }
 
     @Override
@@ -73,9 +83,12 @@ public class CraftWarden extends CraftMonster implements org.bukkit.entity.Warde
 
     @Override
     public void setDisturbanceLocation(Location location) {
-        Preconditions.checkArgument(location != null, "Location cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(location != null, "Location cannot be null");
 
-        WardenAi.setDisturbanceLocation(this.getHandle(), BlockPos.containing(location.getX(), location.getY(), location.getZ()));
+            WardenAi.setDisturbanceLocation(this.getHandle(), BlockPos.containing(location.getX(), location.getY(), location.getZ()));
+            return null;
+        });
     }
 
     @Override

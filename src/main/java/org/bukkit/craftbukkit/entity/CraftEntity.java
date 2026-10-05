@@ -12,6 +12,7 @@ import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
 import com.mohistmc.youer.neoforge.EntityClassLookup;
 import com.mohistmc.youer.neoforge.compat.SableCompat;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -75,6 +76,13 @@ import org.bukkit.util.Vector;
 import org.spigotmc.AsyncCatcher;
 
 public abstract class CraftEntity implements org.bukkit.entity.Entity {
+    protected final <T> T onOwnedMainThreadIfRegionThread(java.util.function.Supplier<T> action) {
+        if (this.entity.isAddedToLevel()) {
+            ThreadedServer.requireOwnedForWrite(this.entity);
+        }
+        return ThreadedServer.onMainThreadIfRegionThread(action);
+    }
+
     private static PermissibleBase perm;
     private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
 
@@ -184,15 +192,19 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setVelocity(Vector velocity) {
-        Preconditions.checkArgument(velocity != null, "velocity");
-        //velocity.checkFinite();
-        // Paper start - Warn server owners when plugins try to set super high velocities
-        if (!(this instanceof org.bukkit.entity.Projectile || this instanceof org.bukkit.entity.Minecart) && isUnsafeVelocity(velocity)) {
-            CraftServer.excessiveVelEx = new Exception("Excessive velocity set detected: tried to set velocity of entity " + entity.getScoreboardName() + " id #" + getEntityId() + " to (" + velocity.getX() + "," + velocity.getY() + "," + velocity.getZ() + ").");
-        }
-        // Paper end
-        this.entity.setDeltaMovement(CraftVector.toNMS(velocity));
-        this.entity.hurtMarked = true;
+        ThreadedServer.requireOwnedForWrite(this.entity);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(velocity != null, "velocity");
+            //velocity.checkFinite();
+            // Paper start - Warn server owners when plugins try to set super high velocities
+            if (!(this instanceof org.bukkit.entity.Projectile || this instanceof org.bukkit.entity.Minecart) && isUnsafeVelocity(velocity)) {
+                CraftServer.excessiveVelEx = new Exception("Excessive velocity set detected: tried to set velocity of entity " + entity.getScoreboardName() + " id #" + getEntityId() + " to (" + velocity.getX() + "," + velocity.getY() + "," + velocity.getZ() + ").");
+            }
+            // Paper end
+            this.entity.setDeltaMovement(CraftVector.toNMS(velocity));
+            this.entity.hurtMarked = true;
+            return null;
+        });
     }
 
     // Paper start
@@ -256,17 +268,23 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setRotation(float yaw, float pitch) {
-        NumberConversions.checkFinite(pitch, "pitch not finite");
-        NumberConversions.checkFinite(yaw, "yaw not finite");
+        ThreadedServer.requireOwnedForWrite(this.entity);
+        final float finalYaw = yaw;
+        final float finalPitch = pitch;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            NumberConversions.checkFinite(finalPitch, "pitch not finite");
+            NumberConversions.checkFinite(finalYaw, "yaw not finite");
 
-        yaw = Location.normalizeYaw(yaw);
-        pitch = Location.normalizePitch(pitch);
+            float normalizedYaw = Location.normalizeYaw(finalYaw);
+            float normalizedPitch = Location.normalizePitch(finalPitch);
 
-        this.entity.setYRot(yaw);
-        this.entity.setXRot(pitch);
-        this.entity.yRotO = yaw;
-        this.entity.xRotO = pitch;
-        this.entity.setYHeadRot(yaw);
+            this.entity.setYRot(normalizedYaw);
+            this.entity.setXRot(normalizedPitch);
+            this.entity.yRotO = normalizedYaw;
+            this.entity.xRotO = normalizedPitch;
+            this.entity.setYHeadRot(normalizedYaw);
+            return null;
+        });
     }
 
     @Override
@@ -282,6 +300,14 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public boolean teleport(Location location, TeleportCause cause, io.papermc.paper.entity.TeleportFlag... flags) {
+        Preconditions.checkArgument(location != null, "location cannot be null");
+        if (ThreadedServer.isRegionThread() && (!ThreadedServer.owns(this) || !ThreadedServer.owns(location))) {
+            throw new IllegalStateException("Region worker cannot teleport an entity outside its owner");
+        }
+        return this.onOwnedMainThreadIfRegionThread(() -> this.teleportUnlocked(location, cause, flags));
+    }
+
+    private boolean teleportUnlocked(Location location, TeleportCause cause, io.papermc.paper.entity.TeleportFlag... flags) {
         // Paper end
         Preconditions.checkArgument(location != null, "location cannot be null");
         location.checkFinite();
@@ -348,13 +374,15 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         Preconditions.checkState(!this.entity.generation, "Cannot get nearby entities during world generation");
         AsyncCatcher.catchOp("getNearbyEntities"); // Spigot
 
-        List<Entity> notchEntityList = this.entity.level().getEntities(this.entity, this.entity.getBoundingBox().inflate(x, y, z), Predicates.alwaysTrue());
-        List<org.bukkit.entity.Entity> bukkitEntityList = new ArrayList<org.bukkit.entity.Entity>(notchEntityList.size());
+        return ThreadedServer.withWorldMutationLock(() -> {
+            List<Entity> notchEntityList = this.entity.level().getEntities(this.entity, this.entity.getBoundingBox().inflate(x, y, z), Predicates.alwaysTrue());
+            List<org.bukkit.entity.Entity> bukkitEntityList = new ArrayList<org.bukkit.entity.Entity>(notchEntityList.size());
 
-        for (Entity e : notchEntityList) {
-            bukkitEntityList.add(e.getBukkitEntity());
-        }
-        return bukkitEntityList;
+            for (Entity e : notchEntityList) {
+                bukkitEntityList.add(e.getBukkitEntity());
+            }
+            return bukkitEntityList;
+        });
     }
 
     @Override
@@ -374,12 +402,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setFireTicks(int ticks) {
-        this.entity.setRemainingFireTicks(ticks);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.entity.setRemainingFireTicks(ticks);
+            return null;
+        });
     }
 
     @Override
     public void setVisualFire(boolean fire) {
-        this.getHandle().hasVisualFire = fire;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().hasVisualFire = fire;
+            return null;
+        });
     }
 
     @Override
@@ -399,9 +433,12 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setFreezeTicks(int ticks) {
-        Preconditions.checkArgument(0 <= ticks, "Ticks (%s) cannot be less than 0", ticks);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(0 <= ticks, "Ticks (%s) cannot be less than 0", ticks);
 
-        this.getHandle().setTicksFrozen(ticks);
+            this.getHandle().setTicksFrozen(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -417,14 +454,23 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void lockFreezeTicks(boolean locked) {
-        this.entity.freezeLocked = locked;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.entity.freezeLocked = locked;
+            return null;
+        });
     }
     // Paper end - Freeze Tick Lock API
 
     @Override
     public void remove() {
-        this.entity.pluginRemoved = true;
-        this.entity.discard(this.getHandle().generation ? null : Cause.PLUGIN);
+        if (ThreadedServer.isRegionThread() && !ThreadedServer.owns(this)) {
+            throw new IllegalStateException("Region worker cannot remove an entity outside its owner");
+        }
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.entity.pluginRemoved = true;
+            this.entity.discard(this.getHandle().generation ? null : Cause.PLUGIN);
+            return null;
+        });
     }
 
     @Override
@@ -449,7 +495,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setPersistent(boolean persistent) {
-        this.entity.persist = persistent;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.entity.persist = persistent;
+            return null;
+        });
     }
 
     public Vector getMomentum() {
@@ -467,13 +516,21 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public boolean setPassenger(org.bukkit.entity.Entity passenger) {
-        Preconditions.checkArgument(!this.equals(passenger), "Entity cannot ride itself.");
-        if (passenger instanceof CraftEntity) {
-            this.eject();
-            return ((CraftEntity) passenger).getHandle().startRiding(this.getHandle());
-        } else {
-            return false;
+        if (this.entity.isAddedToLevel()) {
+            ThreadedServer.requireOwnedForWrite(this.entity);
         }
+        if (passenger instanceof CraftEntity craftPassenger && craftPassenger.getHandle().isAddedToLevel()) {
+            ThreadedServer.requireOwnedForWrite(craftPassenger.getHandle());
+        }
+        return this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(!this.equals(passenger), "Entity cannot ride itself.");
+            if (passenger instanceof CraftEntity) {
+                this.eject();
+                return ((CraftEntity) passenger).getHandle().startRiding(this.getHandle());
+            } else {
+                return false;
+            }
+        });
     }
 
     @Override
@@ -483,18 +540,34 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public boolean addPassenger(org.bukkit.entity.Entity passenger) {
-        Preconditions.checkArgument(passenger != null, "Entity passenger cannot be null");
-        Preconditions.checkArgument(!this.equals(passenger), "Entity cannot ride itself.");
+        if (this.entity.isAddedToLevel()) {
+            ThreadedServer.requireOwnedForWrite(this.entity);
+        }
+        if (passenger instanceof CraftEntity craftPassenger && craftPassenger.getHandle().isAddedToLevel()) {
+            ThreadedServer.requireOwnedForWrite(craftPassenger.getHandle());
+        }
+        return this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(passenger != null, "Entity passenger cannot be null");
+            Preconditions.checkArgument(!this.equals(passenger), "Entity cannot ride itself.");
 
-        return ((CraftEntity) passenger).getHandle().startRiding(this.getHandle(), true);
+            return ((CraftEntity) passenger).getHandle().startRiding(this.getHandle(), true);
+        });
     }
 
     @Override
     public boolean removePassenger(org.bukkit.entity.Entity passenger) {
-        Preconditions.checkArgument(passenger != null, "Entity passenger cannot be null");
+        if (this.entity.isAddedToLevel()) {
+            ThreadedServer.requireOwnedForWrite(this.entity);
+        }
+        if (passenger instanceof CraftEntity craftPassenger && craftPassenger.getHandle().isAddedToLevel()) {
+            ThreadedServer.requireOwnedForWrite(craftPassenger.getHandle());
+        }
+        return this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(passenger != null, "Entity passenger cannot be null");
 
-        ((CraftEntity) passenger).getHandle().stopRiding();
-        return true;
+            ((CraftEntity) passenger).getHandle().stopRiding();
+            return true;
+        });
     }
 
     @Override
@@ -504,12 +577,22 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public boolean eject() {
-        if (this.isEmpty()) {
-            return false;
+        if (this.entity.isAddedToLevel()) {
+            ThreadedServer.requireOwnedForWrite(this.entity);
         }
+        for (Entity passenger : this.getHandle().getPassengers()) {
+            if (passenger.isAddedToLevel()) {
+                ThreadedServer.requireOwnedForWrite(passenger);
+            }
+        }
+        return this.onOwnedMainThreadIfRegionThread(() -> {
+            if (this.isEmpty()) {
+                return false;
+            }
 
-        this.getHandle().ejectPassengers();
-        return true;
+            this.getHandle().ejectPassengers();
+            return true;
+        });
     }
 
     @Override
@@ -519,7 +602,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setFallDistance(float distance) {
-        this.getHandle().fallDistance = distance;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().fallDistance = distance;
+            return null;
+        });
     }
 
     @Override
@@ -544,8 +630,11 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setTicksLived(int value) {
-        Preconditions.checkArgument(value > 0, "Age value (%s) must be greater than 0", value);
-        this.getHandle().tickCount = value;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(value > 0, "Age value (%s) must be greater than 0", value);
+            this.getHandle().tickCount = value;
+            return null;
+        });
     }
 
     public Entity getHandle() {
@@ -565,12 +654,15 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void playEffect(EntityEffect type) {
-        Preconditions.checkArgument(type != null, "Type cannot be null");
-        Preconditions.checkState(!this.entity.generation, "Cannot play effect during world generation");
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(type != null, "Type cannot be null");
+            Preconditions.checkState(!this.entity.generation, "Cannot play effect during world generation");
 
-        if (type.getApplicable().isInstance(this)) {
-            this.getHandle().level().broadcastEntityEvent(this.getHandle(), type.getData());
-        }
+            if (type.getApplicable().isInstance(this)) {
+                this.getHandle().level().broadcastEntityEvent(this.getHandle(), type.getData());
+            }
+            return null;
+        });
     }
 
     @Override
@@ -644,12 +736,14 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public boolean leaveVehicle() {
-        if (!this.isInsideVehicle()) {
-            return false;
-        }
+        return this.onOwnedMainThreadIfRegionThread(() -> {
+            if (!this.isInsideVehicle()) {
+                return false;
+            }
 
-        this.getHandle().stopRiding();
-        return true;
+            this.getHandle().stopRiding();
+            return true;
+        });
     }
 
     @Override
@@ -670,17 +764,25 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void customName(final net.kyori.adventure.text.Component customName) {
-        this.getHandle().setCustomName(customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setCustomName(customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
+            return null;
+        });
     }
 
     @Override
     public void setCustomName(String name) {
-        // sane limit for name length
+        final String finalName;
         if (name != null && name.length() > 256) {
-            name = name.substring(0, 256);
+            finalName = name.substring(0, 256);
+        } else {
+            finalName = name;
         }
 
-        this.getHandle().setCustomName(CraftChatMessage.fromStringOrNull(name));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setCustomName(CraftChatMessage.fromStringOrNull(finalName));
+            return null;
+        });
     }
 
     @Override
@@ -696,7 +798,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setCustomNameVisible(boolean flag) {
-        this.getHandle().setCustomNameVisible(flag);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setCustomNameVisible(flag);
+            return null;
+        });
     }
 
     @Override
@@ -706,21 +811,24 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setVisibleByDefault(boolean visible) {
-        if (this.getHandle().visibleByDefault != visible) {
-            if (visible) {
-                // Making visible by default, reset and show to all players
-                for (Player player : this.server.getOnlinePlayers()) {
-                    ((CraftPlayer) player).resetAndShowEntity(this);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            if (this.getHandle().visibleByDefault != visible) {
+                if (visible) {
+                    // Making visible by default, reset and show to all players
+                    for (Player player : this.server.getOnlinePlayers()) {
+                        ((CraftPlayer) player).resetAndShowEntity(this);
+                    }
+                } else {
+                    // Hiding by default, reset and hide from all players
+                    for (Player player : this.server.getOnlinePlayers()) {
+                        ((CraftPlayer) player).resetAndHideEntity(this);
+                    }
                 }
-            } else {
-                // Hiding by default, reset and hide from all players
-                for (Player player : this.server.getOnlinePlayers()) {
-                    ((CraftPlayer) player).resetAndHideEntity(this);
-                }
-            }
 
-            this.getHandle().visibleByDefault = visible;
-        }
+                this.getHandle().visibleByDefault = visible;
+            }
+            return null;
+        });
     }
 
     @Override
@@ -848,7 +956,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setGlowing(boolean flag) {
-        this.getHandle().setGlowingTag(flag);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setGlowingTag(flag);
+            return null;
+        });
     }
 
     @Override
@@ -858,7 +969,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setInvulnerable(boolean flag) {
-        this.getHandle().setInvulnerable(flag);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setInvulnerable(flag);
+            return null;
+        });
     }
 
     @Override
@@ -873,7 +987,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setSilent(boolean flag) {
-        this.getHandle().setSilent(flag);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setSilent(flag);
+            return null;
+        });
     }
 
     @Override
@@ -883,7 +1000,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setGravity(boolean gravity) {
-        this.getHandle().setNoGravity(!gravity);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setNoGravity(!gravity);
+            return null;
+        });
     }
 
     @Override
@@ -893,7 +1013,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setPortalCooldown(int cooldown) {
-        this.getHandle().portalCooldown = cooldown;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().portalCooldown = cooldown;
+            return null;
+        });
     }
 
     @Override
@@ -903,12 +1026,12 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public boolean addScoreboardTag(String tag) {
-        return this.getHandle().addTag(tag);
+        return this.onOwnedMainThreadIfRegionThread(() -> this.getHandle().addTag(tag));
     }
 
     @Override
     public boolean removeScoreboardTag(String tag) {
-        return this.getHandle().removeTag(tag);
+        return this.onOwnedMainThreadIfRegionThread(() -> this.getHandle().removeTag(tag));
     }
 
     @Override
@@ -945,11 +1068,14 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setPose(Pose pose, boolean fixed) {
-        Preconditions.checkNotNull(pose, "Pose cannot be null");
-        final Entity handle = this.getHandle();
-        handle.fixedPose = false;
-        handle.setPose(net.minecraft.world.entity.Pose.values()[pose.ordinal()]);
-        handle.fixedPose = fixed;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkNotNull(pose, "Pose cannot be null");
+            final Entity handle = this.getHandle();
+            handle.fixedPose = false;
+            handle.setPose(net.minecraft.world.entity.Pose.values()[pose.ordinal()]);
+            handle.fixedPose = fixed;
+            return null;
+        });
     }
 
     @Override

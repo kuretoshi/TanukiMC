@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.destroystokyo.paper.entity.CraftRangedEntity;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
@@ -39,10 +40,13 @@ public class CraftWither extends CraftMonster implements Wither, CraftRangedEnti
 
     @Override
     public void setTarget(Head head, LivingEntity livingEntity) {
-        Preconditions.checkArgument(head != null, "head cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(head != null, "head cannot be null");
 
-        int entityId = (livingEntity != null) ? livingEntity.getEntityId() : 0;
-        this.getHandle().setAlternativeTarget(head.ordinal(), entityId);
+            int entityId = (livingEntity != null) ? livingEntity.getEntityId() : 0;
+            this.getHandle().setAlternativeTarget(head.ordinal(), entityId);
+            return null;
+        });
     }
 
     @Override
@@ -64,9 +68,12 @@ public class CraftWither extends CraftMonster implements Wither, CraftRangedEnti
 
     @Override
     public void setInvulnerabilityTicks(int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "ticks must be >=0");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "ticks must be >=0");
 
-        this.getHandle().setInvulnerableTicks(ticks);
+            this.getHandle().setInvulnerableTicks(ticks);
+            return null;
+        });
     }
 
     // Paper start
@@ -82,7 +89,10 @@ public class CraftWither extends CraftMonster implements Wither, CraftRangedEnti
 
     @Override
     public void setInvulnerableTicks(int ticks) {
-        getHandle().setInvulnerableTicks(ticks);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setInvulnerableTicks(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -92,12 +102,18 @@ public class CraftWither extends CraftMonster implements Wither, CraftRangedEnti
 
     @Override
     public void setCanTravelThroughPortals(boolean value) {
-        getHandle().setCanTravelThroughPortals(value);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setCanTravelThroughPortals(value);
+            return null;
+        });
     }
 
     @Override
     public void enterInvulnerabilityPhase() {
-        this.getHandle().makeInvulnerable();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().makeInvulnerable();
+            return null;
+        });
     }
     // Paper end
 
@@ -110,7 +126,10 @@ public class CraftWither extends CraftMonster implements Wither, CraftRangedEnti
 
     @Override
     public void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner) {
-        getHandle().setSummoner(summoner);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().setSummoner(summoner);
+            return null;
+        });
     }
     // Purpur end
 }

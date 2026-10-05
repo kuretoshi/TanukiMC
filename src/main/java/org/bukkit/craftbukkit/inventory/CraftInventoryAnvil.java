@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.inventory;
 import com.google.common.base.Preconditions;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.neoforge.compat.SableCompat;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.function.Consumer;
 import net.minecraft.world.Container;
 import org.bukkit.Location;
@@ -50,45 +51,62 @@ public class CraftInventoryAnvil extends CraftResultInventory implements AnvilIn
 
     @Override
     public String getRenameText() {
-        this.syncWithArbitraryViewValue((cav) -> this.renameText = cav.getRenameText());
-        return this.renameText;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.syncWithArbitraryViewValue((cav) -> this.renameText = cav.getRenameText());
+            return this.renameText;
+        });
     }
 
     @Override
     public int getRepairCostAmount() {
-        this.syncWithArbitraryViewValue((cav) -> this.repairCostAmount = cav.getRepairItemCountCost());
-        return this.repairCostAmount;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.syncWithArbitraryViewValue((cav) -> this.repairCostAmount = cav.getRepairItemCountCost());
+            return this.repairCostAmount;
+        });
     }
 
     @Override
     public void setRepairCostAmount(int amount) {
-        this.repairCostAmount = amount;
-        this.syncViews((cav) -> cav.setRepairItemCountCost(amount));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.repairCostAmount = amount;
+            this.syncViews((cav) -> cav.setRepairItemCountCost(amount));
+            return null;
+        });
     }
 
     @Override
     public int getRepairCost() {
-        this.syncWithArbitraryViewValue((cav) -> this.repairCost = cav.getRepairCost());
-        return this.repairCost;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.syncWithArbitraryViewValue((cav) -> this.repairCost = cav.getRepairCost());
+            return this.repairCost;
+        });
     }
 
     @Override
     public void setRepairCost(int i) {
-        this.repairCost = i;
-        this.syncViews((cav) -> cav.setRepairCost(i));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.repairCost = i;
+            this.syncViews((cav) -> cav.setRepairCost(i));
+            return null;
+        });
     }
 
     @Override
     public int getMaximumRepairCost() {
-        this.syncWithArbitraryViewValue((cav) -> this.maximumRepairCost = cav.getMaximumRepairCost());
-        return this.maximumRepairCost;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.syncWithArbitraryViewValue((cav) -> this.maximumRepairCost = cav.getMaximumRepairCost());
+            return this.maximumRepairCost;
+        });
     }
 
     @Override
     public void setMaximumRepairCost(int levels) {
-        Preconditions.checkArgument(levels >= 0, "Maximum repair cost must be positive (or 0)");
-        this.maximumRepairCost = levels;
-        this.syncViews((cav) -> cav.setMaximumRepairCost(levels));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(levels >= 0, "Maximum repair cost must be positive (or 0)");
+            this.maximumRepairCost = levels;
+            this.syncViews((cav) -> cav.setMaximumRepairCost(levels));
+            return null;
+        });
     }
 
     public boolean isRepairCostSet() {
@@ -131,26 +149,36 @@ public class CraftInventoryAnvil extends CraftResultInventory implements AnvilIn
     // Purpur start - Anvil API
     @Override
     public boolean canBypassCost() {
-        this.syncWithArbitraryViewValue((cav) -> this.bypassCost = cav.canBypassCost());
-        return this.bypassCost;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.syncWithArbitraryViewValue((cav) -> this.bypassCost = cav.canBypassCost());
+            return this.bypassCost;
+        });
     }
 
     @Override
     public void setBypassCost(boolean bypassCost) {
-        this.bypassCost = bypassCost;
-        this.syncViews((cav) -> cav.setBypassCost(bypassCost));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.bypassCost = bypassCost;
+            this.syncViews((cav) -> cav.setBypassCost(bypassCost));
+            return null;
+        });
     }
 
     @Override
     public boolean canDoUnsafeEnchants() {
-        this.syncWithArbitraryViewValue((cav) -> this.canDoUnsafeEnchants = cav.canDoUnsafeEnchants());
-        return this.canDoUnsafeEnchants;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.syncWithArbitraryViewValue((cav) -> this.canDoUnsafeEnchants = cav.canDoUnsafeEnchants());
+            return this.canDoUnsafeEnchants;
+        });
     }
 
     @Override
     public void setDoUnsafeEnchants(boolean canDoUnsafeEnchants) {
-        this.canDoUnsafeEnchants = canDoUnsafeEnchants;
-        this.syncViews((cav) -> cav.setDoUnsafeEnchants(canDoUnsafeEnchants));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.canDoUnsafeEnchants = canDoUnsafeEnchants;
+            this.syncViews((cav) -> cav.setDoUnsafeEnchants(canDoUnsafeEnchants));
+            return null;
+        });
     }
     // Purpur end - Anvil API
 }

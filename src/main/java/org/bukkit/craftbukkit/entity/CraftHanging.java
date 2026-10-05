@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.decoration.HangingEntity;
 import org.bukkit.block.BlockFace;
@@ -24,30 +25,32 @@ public class CraftHanging extends CraftBlockAttachedEntity implements Hanging {
 
     @Override
     public boolean setFacingDirection(BlockFace face, boolean force) {
-        HangingEntity hanging = this.getHandle();
-        Direction dir = hanging.getDirection();
-        switch (face) {
-            case SOUTH:
-                this.getHandle().setDirection(Direction.SOUTH);
-                break;
-            case WEST:
-                this.getHandle().setDirection(Direction.WEST);
-                break;
-            case NORTH:
-                this.getHandle().setDirection(Direction.NORTH);
-                break;
-            case EAST:
-                this.getHandle().setDirection(Direction.EAST);
-                break;
-            default:
-                throw new IllegalArgumentException(String.format("%s is not a valid facing direction", face));
-        }
-        if (!force && !this.getHandle().generation && !hanging.survives()) {
-            // Revert since it doesn't fit
-            hanging.setDirection(dir);
-            return false;
-        }
-        return true;
+        return ThreadedServer.withWorldMutationLock(() -> {
+            HangingEntity hanging = this.getHandle();
+            Direction dir = hanging.getDirection();
+            switch (face) {
+                case SOUTH:
+                    this.getHandle().setDirection(Direction.SOUTH);
+                    break;
+                case WEST:
+                    this.getHandle().setDirection(Direction.WEST);
+                    break;
+                case NORTH:
+                    this.getHandle().setDirection(Direction.NORTH);
+                    break;
+                case EAST:
+                    this.getHandle().setDirection(Direction.EAST);
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.format("%s is not a valid facing direction", face));
+            }
+            if (!force && !this.getHandle().generation && !hanging.survives()) {
+                // Revert since it doesn't fit
+                hanging.setDirection(dir);
+                return false;
+            }
+            return true;
+        });
     }
 
     @Override

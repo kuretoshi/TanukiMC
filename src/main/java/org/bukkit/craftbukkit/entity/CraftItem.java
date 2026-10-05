@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import java.util.UUID;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.item.ItemEntity;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -30,7 +31,10 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setItemStack(ItemStack stack) {
-        this.getHandle().setItem(CraftItemStack.asNMSCopy(stack));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setItem(CraftItemStack.asNMSCopy(stack));
+            return null;
+        });
     }
 
     @Override
@@ -40,17 +44,23 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setPickupDelay(int delay) {
-        this.getHandle().pickupDelay = Math.min(delay, Short.MAX_VALUE);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().pickupDelay = Math.min(delay, Short.MAX_VALUE);
+            return null;
+        });
     }
 
     @Override
     public void setUnlimitedLifetime(boolean unlimited) {
-        if (unlimited) {
-            // See EntityItem#INFINITE_LIFETIME
-            this.getHandle().age = Short.MIN_VALUE;
-        } else {
-            this.getHandle().age = this.getTicksLived();
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (unlimited) {
+                // See EntityItem#INFINITE_LIFETIME
+                this.getHandle().age = Short.MIN_VALUE;
+            } else {
+                this.getHandle().age = this.getTicksLived();
+            }
+            return null;
+        });
     }
 
     @Override
@@ -60,12 +70,15 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setTicksLived(int value) {
-        super.setTicksLived(value);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            super.setTicksLived(value);
 
-        // Second field for EntityItem (don't set if lifetime is unlimited)
-        if (!this.isUnlimitedLifetime()) {
-            this.getHandle().age = value;
-        }
+            // Second field for EntityItem (don't set if lifetime is unlimited)
+            if (!this.isUnlimitedLifetime()) {
+                this.getHandle().age = value;
+            }
+            return null;
+        });
     }
 
     // Paper start
@@ -76,7 +89,10 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setCanMobPickup(boolean canMobPickup) {
-        this.getHandle().canMobPickup = canMobPickup;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().canMobPickup = canMobPickup;
+            return null;
+        });
     }
 
     @Override
@@ -86,7 +102,10 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setCanPlayerPickup(boolean canPlayerPickup) {
-        this.getHandle().pickupDelay = canPlayerPickup ? 0 : NO_PICKUP_TIME;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().pickupDelay = canPlayerPickup ? 0 : NO_PICKUP_TIME;
+            return null;
+        });
     }
 
     @Override
@@ -96,7 +115,10 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setWillAge(boolean willAge) {
-        this.getHandle().age = willAge ? 0 : NO_AGE_TIME;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().age = willAge ? 0 : NO_AGE_TIME;
+            return null;
+        });
     }
 
     @org.jetbrains.annotations.NotNull
@@ -107,8 +129,11 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setFrictionState(@org.jetbrains.annotations.NotNull net.kyori.adventure.util.TriState state) {
-        java.util.Objects.requireNonNull(state, "state may not be null");
-        this.getHandle().frictionState = state;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            java.util.Objects.requireNonNull(state, "state may not be null");
+            this.getHandle().frictionState = state;
+            return null;
+        });
     }
 
     @Override
@@ -118,18 +143,24 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setHealth(int health) {
-        if (health <= 0) {
-            this.getHandle().getItem().onDestroyed(this.getHandle());
-            this.getHandle().discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PLUGIN);
-        } else {
-            this.getHandle().health = health;
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (health <= 0) {
+                this.getHandle().getItem().onDestroyed(this.getHandle());
+                this.getHandle().discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.PLUGIN);
+            } else {
+                this.getHandle().health = health;
+            }
+            return null;
+        });
     }
     // Paper end
 
     @Override
     public void setOwner(UUID uuid) {
-        this.getHandle().setTarget(uuid);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setTarget(uuid);
+            return null;
+        });
     }
 
     @Override
@@ -139,7 +170,10 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setThrower(UUID uuid) {
-        this.getHandle().thrower = uuid;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().thrower = uuid;
+            return null;
+        });
     }
 
     @Override
@@ -155,7 +189,10 @@ public class CraftItem extends CraftEntity implements Item {
     // Purpur start
     @Override
     public void setImmuneToCactus(boolean immuneToCactus) {
-        this.getHandle().immuneToCactus = immuneToCactus;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().immuneToCactus = immuneToCactus;
+            return null;
+        });
     }
 
     @Override
@@ -165,7 +202,10 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setImmuneToExplosion(boolean immuneToExplosion) {
-        this.getHandle().immuneToExplosion = immuneToExplosion;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().immuneToExplosion = immuneToExplosion;
+            return null;
+        });
     }
 
     @Override
@@ -175,7 +215,10 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setImmuneToFire(@org.jetbrains.annotations.Nullable Boolean immuneToFire) {
-        this.getHandle().immuneToFire = (immuneToFire != null && immuneToFire);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().immuneToFire = (immuneToFire != null && immuneToFire);
+            return null;
+        });
     }
 
     @Override
@@ -190,7 +233,10 @@ public class CraftItem extends CraftEntity implements Item {
 
     @Override
     public void setImmuneToLightning(boolean immuneToLightning) {
-        this.getHandle().immuneToLightning = immuneToLightning;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().immuneToLightning = immuneToLightning;
+            return null;
+        });
     }
 
     @Override

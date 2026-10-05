@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import org.bukkit.Location;
@@ -19,7 +20,10 @@ public class CraftEnderCrystal extends CraftEntity implements EnderCrystal {
 
     @Override
     public void setShowingBottom(boolean showing) {
-        this.getHandle().setShowBottom(showing);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setShowBottom(showing);
+            return null;
+        });
     }
 
     @Override
@@ -30,13 +34,16 @@ public class CraftEnderCrystal extends CraftEntity implements EnderCrystal {
 
     @Override
     public void setBeamTarget(Location location) {
-        if (location == null) {
-            this.getHandle().setBeamTarget((BlockPos) null);
-        } else if (location.getWorld() != this.getWorld()) {
-            throw new IllegalArgumentException("Cannot set beam target location to different world");
-        } else {
-            this.getHandle().setBeamTarget(CraftLocation.toBlockPosition(location));
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (location == null) {
+                this.getHandle().setBeamTarget((BlockPos) null);
+            } else if (location.getWorld() != this.getWorld()) {
+                throw new IllegalArgumentException("Cannot set beam target location to different world");
+            } else {
+                this.getHandle().setBeamTarget(CraftLocation.toBlockPosition(location));
+            }
+            return null;
+        });
     }
 
     @Override

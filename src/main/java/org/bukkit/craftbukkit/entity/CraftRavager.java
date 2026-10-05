@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Ravager;
 
@@ -26,7 +27,10 @@ public class CraftRavager extends CraftRaider implements Ravager {
 
     @Override
     public void setAttackTicks(int ticks) {
-        this.getHandle().attackTick = ticks;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().attackTick = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -36,7 +40,10 @@ public class CraftRavager extends CraftRaider implements Ravager {
 
     @Override
     public void setStunnedTicks(int ticks) {
-        this.getHandle().stunnedTick = ticks;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().stunnedTick = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -46,7 +53,10 @@ public class CraftRavager extends CraftRaider implements Ravager {
 
     @Override
     public void setRoarTicks(int ticks) {
-        this.getHandle().roarTick = ticks;
+        ThreadedServer.withWorldMutationLock(() -> {
+            this.getHandle().roarTick = ticks;
+            return null;
+        });
     }
     // Paper end
 }

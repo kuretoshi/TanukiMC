@@ -6,6 +6,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.Entity;
 import org.bukkit.craftbukkit.entity.CraftEntity;
@@ -62,35 +63,30 @@ public final class EntityScheduler {
      * @throws IllegalStateException If the scheduler is already retired.
      */
     public void retire() {
+        final List<ScheduledTask> retiredTasks = new ArrayList<>();
         synchronized (this.stateLock) {
             if (this.tickCount == RETIRED_TICK_COUNT) {
                 return;
             }
             this.tickCount = RETIRED_TICK_COUNT;
+            while (!this.currentlyExecuting.isEmpty()) {
+                retiredTasks.add(this.currentlyExecuting.pollFirst());
+            }
+            for (final List<ScheduledTask> tasks : this.oneTimeDelayed.values()) {
+                retiredTasks.addAll(tasks);
+            }
+            this.oneTimeDelayed.clear();
         }
 
         final Entity thisEntity = this.entity.getHandleRaw();
-
-        // correctly handle and order retiring while running executeTick
-        for (int i = 0, len = this.currentlyExecuting.size(); i < len; ++i) {
-            final ScheduledTask task = this.currentlyExecuting.pollFirst();
+        for (final ScheduledTask task : retiredTasks) {
             final Consumer<Entity> retireTask = (Consumer<Entity>)task.retired;
-            if (retireTask == null) {
-                continue;
-            }
-
-            retireTask.accept(thisEntity);
-        }
-
-        for (final List<ScheduledTask> tasks : this.oneTimeDelayed.values()) {
-            for (int i = 0, len = tasks.size(); i < len; ++i) {
-                final ScheduledTask task = tasks.get(i);
-                final Consumer<Entity> retireTask = (Consumer<Entity>)task.retired;
-                if (retireTask == null) {
-                    continue;
+            if (retireTask != null) {
+                try {
+                    retireTask.accept(thisEntity);
+                } catch (Throwable throwable) {
+                    LOGGER.error("Entity scheduler retirement callback failed", throwable);
                 }
-
-                retireTask.accept(thisEntity);
             }
         }
     }
@@ -141,45 +137,39 @@ public final class EntityScheduler {
     public void executeTick() {
         final Entity thisEntity = this.entity.getHandleRaw();
 
-        if (Thread.currentThread() != MinecraftServer.getServer().serverThread) {
+        if (Thread.currentThread() != MinecraftServer.getServer().serverThread && !ThreadedServer.owns(this.entity)) {
             LOGGER.error("Thread {} failed main thread check: May not tick entity scheduler asynchronously", Thread.currentThread().getName(), new Throwable());
             throw new IllegalStateException("May not tick entity scheduler asynchronously");
         }
-        final List<ScheduledTask> toRun;
         synchronized (this.stateLock) {
             if (this.tickCount == RETIRED_TICK_COUNT) {
                 return;
             }
             ++this.tickCount;
-            if (this.oneTimeDelayed.isEmpty()) {
-                toRun = null;
-            } else {
-                toRun = this.oneTimeDelayed.remove(this.tickCount);
-            }
-        }
-
-        if (toRun != null) {
-            for (int i = 0, len = toRun.size(); i < len; ++i) {
-                this.currentlyExecuting.addLast(toRun.get(i));
+            final List<ScheduledTask> toRun = this.oneTimeDelayed.remove(this.tickCount);
+            if (toRun != null) {
+                this.currentlyExecuting.addAll(toRun);
             }
         }
 
         // Note: It is allowed for the tasks executed to retire the entity in a given task.
-        for (int i = 0, len = this.currentlyExecuting.size(); i < len; ++i) {
-            if (Thread.currentThread() != MinecraftServer.getServer().serverThread) {
+        for (;;) {
+            if (Thread.currentThread() != MinecraftServer.getServer().serverThread && !ThreadedServer.owns(this.entity)) {
                 // tp has been queued sync by one of the tasks
                 // in this case, we need to delay the tasks for next tick
                 break;
             }
-            final ScheduledTask task = this.currentlyExecuting.pollFirst();
-
-            if (this.tickCount != RETIRED_TICK_COUNT) {
-                ((Consumer<Entity>)task.run).accept(thisEntity);
-            } else {
-                // retired synchronously
-                // note: here task is null
+            final ScheduledTask task;
+            synchronized (this.stateLock) {
+                if (this.tickCount == RETIRED_TICK_COUNT) {
+                    break;
+                }
+                task = this.currentlyExecuting.pollFirst();
+            }
+            if (task == null) {
                 break;
             }
+            ((Consumer<Entity>)task.run).accept(thisEntity);
         }
     }
 }

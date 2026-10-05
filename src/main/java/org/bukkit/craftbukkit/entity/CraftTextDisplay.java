@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.Display;
 import org.bukkit.Color;
 import org.bukkit.craftbukkit.CraftServer;
@@ -30,7 +31,10 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void setText(String text) {
-        this.getHandle().setText(CraftChatMessage.fromString(text, true)[0]);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setText(CraftChatMessage.fromString(text, true)[0]);
+            return null;
+        });
     }
     // Paper start
     @Override
@@ -40,7 +44,10 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void text(net.kyori.adventure.text.Component text) {
-        this.getHandle().setText(text == null ? net.minecraft.network.chat.Component.empty() : io.papermc.paper.adventure.PaperAdventure.asVanilla(text));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setText(text == null ? net.minecraft.network.chat.Component.empty() : io.papermc.paper.adventure.PaperAdventure.asVanilla(text));
+            return null;
+        });
     }
     // Paper end
 
@@ -51,7 +58,10 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void setLineWidth(int width) {
-        this.getHandle().getEntityData().set(Display.TextDisplay.DATA_LINE_WIDTH_ID, width);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().getEntityData().set(Display.TextDisplay.DATA_LINE_WIDTH_ID, width);
+            return null;
+        });
     }
 
     @Override
@@ -63,11 +73,14 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void setBackgroundColor(Color color) {
-        if (color == null) {
-            this.getHandle().getEntityData().set(Display.TextDisplay.DATA_BACKGROUND_COLOR_ID, -1);
-        } else {
-            this.getHandle().getEntityData().set(Display.TextDisplay.DATA_BACKGROUND_COLOR_ID, color.asARGB());
-        }
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (color == null) {
+                this.getHandle().getEntityData().set(Display.TextDisplay.DATA_BACKGROUND_COLOR_ID, -1);
+            } else {
+                this.getHandle().getEntityData().set(Display.TextDisplay.DATA_BACKGROUND_COLOR_ID, color.asARGB());
+            }
+            return null;
+        });
     }
 
     @Override
@@ -77,7 +90,10 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void setTextOpacity(byte opacity) {
-        this.getHandle().setTextOpacity(opacity);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setTextOpacity(opacity);
+            return null;
+        });
     }
 
     @Override
@@ -87,7 +103,10 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void setShadowed(boolean shadow) {
-        this.setFlag(Display.TextDisplay.FLAG_SHADOW, shadow);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.setFlag(Display.TextDisplay.FLAG_SHADOW, shadow);
+            return null;
+        });
     }
 
     @Override
@@ -97,7 +116,10 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void setSeeThrough(boolean seeThrough) {
-        this.setFlag(Display.TextDisplay.FLAG_SEE_THROUGH, seeThrough);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.setFlag(Display.TextDisplay.FLAG_SEE_THROUGH, seeThrough);
+            return null;
+        });
     }
 
     @Override
@@ -107,7 +129,10 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void setDefaultBackground(boolean defaultBackground) {
-        this.setFlag(Display.TextDisplay.FLAG_USE_DEFAULT_BACKGROUND, defaultBackground);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.setFlag(Display.TextDisplay.FLAG_USE_DEFAULT_BACKGROUND, defaultBackground);
+            return null;
+        });
     }
 
     @Override
@@ -118,24 +143,27 @@ public class CraftTextDisplay extends CraftDisplay implements TextDisplay {
 
     @Override
     public void setAlignment(TextAlignment alignment) {
-        Preconditions.checkArgument(alignment != null, "Alignment cannot be null");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(alignment != null, "Alignment cannot be null");
 
-        switch (alignment) {
-            case LEFT:
-                this.setFlag(Display.TextDisplay.FLAG_ALIGN_LEFT, true);
-                this.setFlag(Display.TextDisplay.FLAG_ALIGN_RIGHT, false);
-                break;
-            case RIGHT:
-                this.setFlag(Display.TextDisplay.FLAG_ALIGN_LEFT, false);
-                this.setFlag(Display.TextDisplay.FLAG_ALIGN_RIGHT, true);
-                break;
-            case CENTER:
-                this.setFlag(Display.TextDisplay.FLAG_ALIGN_LEFT, false);
-                this.setFlag(Display.TextDisplay.FLAG_ALIGN_RIGHT, false);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown alignment " + alignment);
-        }
+            switch (alignment) {
+                case LEFT:
+                    this.setFlag(Display.TextDisplay.FLAG_ALIGN_LEFT, true);
+                    this.setFlag(Display.TextDisplay.FLAG_ALIGN_RIGHT, false);
+                    break;
+                case RIGHT:
+                    this.setFlag(Display.TextDisplay.FLAG_ALIGN_LEFT, false);
+                    this.setFlag(Display.TextDisplay.FLAG_ALIGN_RIGHT, true);
+                    break;
+                case CENTER:
+                    this.setFlag(Display.TextDisplay.FLAG_ALIGN_LEFT, false);
+                    this.setFlag(Display.TextDisplay.FLAG_ALIGN_RIGHT, false);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown alignment " + alignment);
+            }
+            return null;
+        });
     }
 
     private boolean getFlag(int flag) {

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.Holder;
 import net.minecraft.world.entity.decoration.PaintingVariant;
 import org.bukkit.Art;
@@ -26,28 +27,32 @@ public class CraftPainting extends CraftHanging implements Painting {
 
     @Override
     public boolean setArt(Art art, boolean force) {
-        net.minecraft.world.entity.decoration.Painting painting = this.getHandle();
-        Holder<PaintingVariant> oldArt = painting.getVariant();
-        painting.setVariant(CraftArt.bukkitToMinecraftHolder(art));
-        painting.setDirection(painting.getDirection());
-        if (!force && !this.getHandle().generation && !painting.survives()) {
-            // Revert painting since it doesn't fit
-            painting.setVariant(oldArt);
+        return ThreadedServer.withWorldMutationLock(() -> {
+            net.minecraft.world.entity.decoration.Painting painting = this.getHandle();
+            Holder<PaintingVariant> oldArt = painting.getVariant();
+            painting.setVariant(CraftArt.bukkitToMinecraftHolder(art));
             painting.setDirection(painting.getDirection());
-            return false;
-        }
-        //this.update(); Paper - Don't resent entity on art update
-        return true;
+            if (!force && !this.getHandle().generation && !painting.survives()) {
+                // Revert painting since it doesn't fit
+                painting.setVariant(oldArt);
+                painting.setDirection(painting.getDirection());
+                return false;
+            }
+            //this.update(); Paper - Don't resent entity on art update
+            return true;
+        });
     }
 
     @Override
     public boolean setFacingDirection(BlockFace face, boolean force) {
-        if (super.setFacingDirection(face, force)) {
-            this.update();
-            return true;
-        }
+        return ThreadedServer.withWorldMutationLock(() -> {
+            if (super.setFacingDirection(face, force)) {
+                this.update();
+                return true;
+            }
 
-        return false;
+            return false;
+        });
     }
 
     @Override

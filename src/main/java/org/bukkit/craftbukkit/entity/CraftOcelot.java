@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Ocelot;
 
@@ -20,7 +21,10 @@ public class CraftOcelot extends CraftAnimals implements Ocelot {
 
     @Override
     public void setTrusting(boolean trust) {
-        this.getHandle().setTrusting(trust);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setTrusting(trust);
+            return null;
+        });
     }
 
     @Override

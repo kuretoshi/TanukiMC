@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import java.util.UUID;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.craftbukkit.CraftServer;
@@ -29,7 +30,10 @@ public class CraftInteraction extends CraftEntity implements Interaction {
 
     @Override
     public void setInteractionWidth(float width) {
-        this.getHandle().setWidth(width);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setWidth(width);
+            return null;
+        });
     }
 
     @Override
@@ -39,7 +43,10 @@ public class CraftInteraction extends CraftEntity implements Interaction {
 
     @Override
     public void setInteractionHeight(float height) {
-        this.getHandle().setHeight(height);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setHeight(height);
+            return null;
+        });
     }
 
     @Override
@@ -49,7 +56,10 @@ public class CraftInteraction extends CraftEntity implements Interaction {
 
     @Override
     public void setResponsive(boolean response) {
-        this.getHandle().setResponse(response);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setResponse(response);
+            return null;
+        });
     }
 
     @Override

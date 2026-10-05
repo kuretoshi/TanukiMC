@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.lang.ref.WeakReference;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -209,35 +210,37 @@ public class CraftBlockState implements BlockState {
 
     @Override
     public boolean update(boolean force, boolean applyPhysics) {
-        if (!this.isPlaced()) {
-            return true;
-        }
-        LevelAccessor access = this.getWorldHandle();
-        CraftBlock block = this.getBlock();
-
-        if (block.getType() != this.getType()) {
-            if (!force) {
-                return false;
+        return ThreadedServer.withWorldMutationLock(() -> {
+            if (!this.isPlaced()) {
+                return true;
             }
-        }
+            LevelAccessor access = this.getWorldHandle();
+            CraftBlock block = this.getBlock();
 
-        net.minecraft.world.level.block.state.BlockState newBlock = this.data;
-        block.setTypeAndData(newBlock, applyPhysics);
-        if (access instanceof net.minecraft.world.level.Level) {
-            this.world.getHandle().sendBlockUpdated(
-                    this.position,
-                    block.getNMS(),
-                    newBlock,
-                    3
-            );
-        }
+            if (block.getType() != this.getType()) {
+                if (!force) {
+                    return false;
+                }
+            }
 
-        // Update levers etc
-        if (false && applyPhysics && this.getData() instanceof Attachable) { // Call does not map to new API
-            this.world.getHandle().updateNeighborsAt(this.position.relative(CraftBlock.blockFaceToNotch(((Attachable) this.getData()).getAttachedFace())), newBlock.getBlock());
-        }
+            net.minecraft.world.level.block.state.BlockState newBlock = this.data;
+            block.setTypeAndData(newBlock, applyPhysics);
+            if (access instanceof net.minecraft.world.level.Level) {
+                this.world.getHandle().sendBlockUpdated(
+                        this.position,
+                        block.getNMS(),
+                        newBlock,
+                        3
+                );
+            }
 
-        return true;
+            // Update levers etc
+            if (false && applyPhysics && this.getData() instanceof Attachable) { // Call does not map to new API
+                this.world.getHandle().updateNeighborsAt(this.position.relative(CraftBlock.blockFaceToNotch(((Attachable) this.getData()).getAttachedFace())), newBlock.getBlock());
+            }
+
+            return true;
+        });
     }
 
     @Override

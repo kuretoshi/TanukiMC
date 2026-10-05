@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Axolotl;
 
@@ -27,7 +28,10 @@ public class CraftAxolotl extends CraftAnimals implements Axolotl, io.papermc.pa
 
     @Override
     public void setPlayingDead(boolean playingDead) {
-        this.getHandle().setPlayingDead(playingDead);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setPlayingDead(playingDead);
+            return null;
+        });
     }
 
     @Override
@@ -37,8 +41,11 @@ public class CraftAxolotl extends CraftAnimals implements Axolotl, io.papermc.pa
 
     @Override
     public void setVariant(Variant variant) {
-        Preconditions.checkArgument(variant != null, "variant");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(variant != null, "variant");
 
-        this.getHandle().setVariant(net.minecraft.world.entity.animal.axolotl.Axolotl.Variant.byId(variant.ordinal()));
+            this.getHandle().setVariant(net.minecraft.world.entity.animal.axolotl.Axolotl.Variant.byId(variant.ordinal()));
+            return null;
+        });
     }
 }

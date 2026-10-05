@@ -1,3 +1,5 @@
+TanukiMC is a fork of Youer and retains Youer's upstream licensing and notices.
+
 Youer inherits its licensing from upstream projects.
 
 As such, Youer is licensed under the

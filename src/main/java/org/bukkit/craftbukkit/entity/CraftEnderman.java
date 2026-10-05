@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.level.block.state.BlockState;
 import org.bukkit.Material;
@@ -32,12 +33,18 @@ public class CraftEnderman extends CraftMonster implements Enderman {
 
     @Override
     public void setCarriedMaterial(MaterialData data) {
-        this.getHandle().setCarriedBlock(CraftMagicNumbers.getBlock(data));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCarriedBlock(CraftMagicNumbers.getBlock(data));
+            return null;
+        });
     }
 
     @Override
     public void setCarriedBlock(BlockData blockData) {
-        this.getHandle().setCarriedBlock(blockData == null ? null : ((CraftBlockData) blockData).getState());
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCarriedBlock(blockData == null ? null : ((CraftBlockData) blockData).getState());
+            return null;
+        });
     }
 
     // Paper start
@@ -48,7 +55,10 @@ public class CraftEnderman extends CraftMonster implements Enderman {
 
     @Override
     public void setScreaming(boolean screaming) {
-        this.getHandle().setCreepy(screaming);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCreepy(screaming);
+            return null;
+        });
     }
 
     @Override
@@ -58,7 +68,10 @@ public class CraftEnderman extends CraftMonster implements Enderman {
 
     @Override
     public void setHasBeenStaredAt(boolean hasBeenStaredAt) {
-        this.getHandle().setHasBeenStaredAt(hasBeenStaredAt);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setHasBeenStaredAt(hasBeenStaredAt);
+            return null;
+        });
     }
     // Paper end
 

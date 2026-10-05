@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Locale;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -36,9 +37,12 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
 
     @Override
     public void setCatType(Type type) {
-        Preconditions.checkArgument(type != null, "Cannot have null Type");
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(type != null, "Cannot have null Type");
 
-        this.getHandle().setVariant(CraftType.bukkitToMinecraftHolder(type));
+            this.getHandle().setVariant(CraftType.bukkitToMinecraftHolder(type));
+            return null;
+        });
     }
 
     @Override
@@ -48,7 +52,10 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
 
     @Override
     public void setCollarColor(DyeColor color) {
-        this.getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+            return null;
+        });
     }
 
     public static class CraftType implements Type, Handleable<CatVariant> {
@@ -143,7 +150,10 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
     // Paper start - More cat api
     @Override
     public void setLyingDown(boolean lyingDown) {
-        this.getHandle().setLying(lyingDown);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setLying(lyingDown);
+            return null;
+        });
     }
 
     @Override
@@ -153,7 +163,10 @@ public class CraftCat extends CraftTameableAnimal implements Cat {
 
     @Override
     public void setHeadUp(boolean headUp) {
-        this.getHandle().setRelaxStateOne(headUp);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setRelaxStateOne(headUp);
+            return null;
+        });
     }
 
     @Override

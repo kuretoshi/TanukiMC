@@ -105,7 +105,7 @@ public class LibrariesDownloadQueue {
                 } catch (IOException ignored) {
                 }
             } else {
-                System.out.println("[Youer] The file " + file.getPath() + " doesn't exists in the Youer jar !");
+                System.out.println("[TanukiMC] The file " + file.getPath() + " doesn't exist in the TanukiMC jar!");
                 return false;
             }
         }

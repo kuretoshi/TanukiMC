@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -6,6 +_,7 @@
+ import java.io.File;
+ import java.io.IOException;
+ import java.util.Arrays;
++import java.util.ArrayList;
+ import java.util.List;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.CompletionStage;
 @@ -65,6 +_,9 @@
      @VisibleForDebug
      private NaturalSpawner.SpawnState lastSpawnState;
@@ -10,7 +18,7 @@
      public ServerChunkCache(
          ServerLevel p_214982_,
          LevelStorageSource.LevelStorageAccess p_214983_,
-@@ -106,6 +_,46 @@
+@@ -106,6 +_,49 @@
          this.clearCache();
      }
  
@@ -47,6 +55,9 @@
 +
 +    @Nullable
 +    public LevelChunk getChunkAtIfLoadedImmediately(int x, int z) {
++        if (com.mohistmc.youer.threading.ThreadedServer.isRegionThread()) {
++            return this.getChunkNow(x, z);
++        }
 +        ChunkHolder chunk = this.chunkMap.getUpdatingChunkIfPresent(ChunkPos.asLong(x, z));
 +        if (chunk == null) {
 +            return null;
@@ -68,6 +79,19 @@
              profilerfiller.incrementCounter("getChunkCacheMiss");
              CompletableFuture<ChunkResult<ChunkAccess>> completablefuture = this.getChunkFutureMainThread(p_8360_, p_8361_, p_330876_, p_8363_);
              this.mainThreadProcessor.managedBlock(completablefuture::isDone);
+@@ -168,7 +_,11 @@
+     @Override
+     public LevelChunk getChunkNow(int p_8357_, int p_8358_) {
+         if (Thread.currentThread() != this.mainThread) {
+-            return null;
++            if (!com.mohistmc.youer.threading.ThreadedServer.owns(this.level.getWorld(), p_8357_, p_8358_)) {
++                return null;
++            }
++            ChunkHolder owned = this.getVisibleChunkIfPresent(ChunkPos.asLong(p_8357_, p_8358_));
++            return owned == null ? null : owned.getFullChunkNow();
+         } else {
+             this.level.getProfiler().incrementCounter("getChunkNow");
+             long i = ChunkPos.asLong(p_8357_, p_8358_);
 @@ -184,6 +_,7 @@
              if (chunkholder == null) {
                  return null;
@@ -76,6 +100,20 @@
                  ChunkAccess chunkaccess1 = chunkholder.getChunkIfPresent(ChunkStatus.FULL);
                  if (chunkaccess1 != null) {
                      this.storeInCache(i, chunkaccess1, ChunkStatus.FULL);
+@@ -203,6 +_,13 @@
+         Arrays.fill(this.lastChunk, null);
+     }
+ 
++    public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureNonBlocking(int x, int z, ChunkStatus status, boolean load) {
++        if (Thread.currentThread() != this.mainThread) {
++            throw new IllegalStateException("Non-blocking chunk requests must be submitted on the server thread");
++        }
++        return this.getChunkFutureMainThread(x, z, status, load);
++    }
++
+     public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int p_8432_, int p_8433_, ChunkStatus p_330326_, boolean p_8435_) {
+         boolean flag = Thread.currentThread() == this.mainThread;
+         CompletableFuture<ChunkResult<ChunkAccess>> completablefuture;
 @@ -250,8 +_,12 @@
      @Override
      public boolean hasChunk(int p_8429_, int p_8430_) {
@@ -131,7 +169,7 @@
      @Override
      public void tick(BooleanSupplier p_201913_, boolean p_201914_) {
          this.level.getProfiler().push("purge");
-@@ -348,15 +_,26 @@
+@@ -348,24 +_,45 @@
                  );
                  this.lastSpawnState = naturalspawner$spawnstate;
                  profilerfiller.popPush("spawnAndTick");
@@ -151,6 +189,8 @@
 -                boolean flag = this.level.getLevelData().getGameTime() % 400L == 0L;
 +                long magic_ = 400L;
 +                boolean flag = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getLevelData().getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
++                boolean threadedChunkTicks = com.mohistmc.youer.threading.ThreadedServer.enabled() && com.mohistmc.youer.YouerConfig.threaded_world_ticks;
++                List<LevelChunk> tickableChunks = threadedChunkTicks ? new ArrayList<>() : List.of();
  
                  for (ServerChunkCache.ChunkAndHolder serverchunkcache$chunkandholder : list) {
                      LevelChunk levelchunk1 = serverchunkcache$chunkandholder.chunk;
@@ -161,6 +201,36 @@
                          levelchunk1.incrementInhabitedTime(j);
                          if (flag1 && (this.spawnEnemies || this.spawnFriendlies) && this.level.getWorldBorder().isWithinBounds(chunkpos)) {
                              NaturalSpawner.spawnForChunk(this.level, levelchunk1, naturalspawner$spawnstate, this.spawnFriendlies, this.spawnEnemies, flag);
+                         }
+ 
+                         if (this.level.shouldTickBlocksAt(chunkpos.toLong())) {
+-                            this.level.tickChunk(levelchunk1, k);
++                            if (threadedChunkTicks) {
++                                tickableChunks.add(levelchunk1);
++                            } else {
++                                this.level.tickChunk(levelchunk1, k);
++                            }
+                         }
+                     }
++                }
++
++                if (threadedChunkTicks && !tickableChunks.isEmpty()) {
++                    com.mohistmc.youer.threading.ThreadedRegionScheduler.get().tickChunks(this.level, tickableChunks, k);
+                 }
+ 
+                 profilerfiller.popPush("customSpawners");
+@@ -381,6 +_,11 @@
+         }
+     }
+ 
++    public void tickChunkRegion(LevelChunk chunk, int randomTickSpeed) {
++        this.chunkMap.reducedRange.set(true);
++        this.level.tickChunk(chunk, randomTickSpeed);
++    }
++
+     private void getFullChunk(long p_8371_, Consumer<LevelChunk> p_8372_) {
+         ChunkHolder chunkholder = this.getVisibleChunkIfPresent(p_8371_);
+         if (chunkholder != null) {
 @@ -415,6 +_,17 @@
          return this.chunkMap.size();
      }

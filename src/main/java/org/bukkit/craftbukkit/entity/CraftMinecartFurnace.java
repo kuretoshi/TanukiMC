@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.vehicle.MinecartFurnace;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.minecart.PoweredMinecart;
@@ -24,7 +25,10 @@ public class CraftMinecartFurnace extends CraftMinecart implements PoweredMineca
     @Override
     public void setFuel(int fuel) {
         Preconditions.checkArgument(fuel >= 0, "ticks cannot be negative");
-        this.getHandle().fuel = fuel;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().fuel = fuel;
+            return null;
+        });
     }
 
     // Paper start
@@ -40,12 +44,18 @@ public class CraftMinecartFurnace extends CraftMinecart implements PoweredMineca
 
     @Override
     public void setPushX(double xPush) {
-        getHandle().xPush = xPush;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().xPush = xPush;
+            return null;
+        });
     }
 
     @Override
     public void setPushZ(double zPush) {
-        getHandle().zPush = zPush;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            getHandle().zPush = zPush;
+            return null;
+        });
     }
     // Paper end
 

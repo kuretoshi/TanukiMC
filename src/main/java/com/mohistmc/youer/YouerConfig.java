@@ -50,10 +50,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 public class YouerConfig {
 
     private static final List<String> HEADER = Arrays.asList("""
-            This is the main configuration file for Youer.
+            This is the main configuration file for TanukiMC.
             As you can see, there's tons to configure. Some options may impact gameplay, so use
             with caution, and make sure you know what each option does before configuring.
-            For a reference for any variable inside this file, check out the Youer wiki at
+            For a reference for any variable inside this file, check out the upstream documentation at
             - [English Documentation](https://mohistmc.com/youer/docs)
             - [中文文档](https://www.mohistmc.cn/docs/youer)
             
@@ -93,6 +93,11 @@ public class YouerConfig {
     // changes while the server runs, yet every autosave re-encodes it once per dimension (main world
     // and each dimension level.dat). Re-encoding dominated saveEverything in profiles of big modpacks.
     public static boolean cache_worldgen_settings;
+    public static boolean threaded_enabled;
+    public static boolean threaded_world_ticks;
+    public static boolean threaded_relaxed_async_catcher;
+    public static int threaded_worker_count;
+    public static int threaded_region_chunk_shift;
     public static boolean clear_item;
     public static List<String> clear_item_whitelist;
     public static int clear_item_time;
@@ -237,7 +242,7 @@ public class YouerConfig {
             Class.forName("com.mysql.cj.jdbc.Driver");
             Class.forName("org.mariadb.jdbc.Driver");
         } catch (Throwable t) {
-            throw new RuntimeException("Error initializing Youer", t);
+            throw new RuntimeException("Error initializing TanukiMC", t);
         }
     }
 
@@ -247,7 +252,7 @@ public class YouerConfig {
 
     public static void registerCommands() {
         for (Map.Entry<String, Command> entry : commands.entrySet()) {
-            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "Youer", entry.getValue());
+            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "TanukiMC", entry.getValue());
         }
     }
 
@@ -329,6 +334,11 @@ public class YouerConfig {
         async_advancement_loading = getBoolean("youer.async_advancement_loading", true);
         async_advancement_saving = getBoolean("youer.async_advancement_saving", true);
         cache_worldgen_settings = getBoolean("youer.cache_worldgen_settings", true);
+        threaded_enabled = getBoolean("youer.threaded.enabled", true);
+        threaded_world_ticks = getBoolean("youer.threaded.world_ticks", true);
+        threaded_relaxed_async_catcher = getBoolean("youer.threaded.relaxed_async_catcher", true);
+        threaded_worker_count = getInt("youer.threaded.worker_count", Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
+        threaded_region_chunk_shift = getInt("youer.threaded.region_chunk_shift", 4);
 
         clear_item = getBoolean("entity.clear.item.enable", false);
         clear_item_whitelist = getStringList("entity.clear.item.whitelist", new ArrayList<>());

@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Dolphin;
 
@@ -27,12 +28,18 @@ public class CraftDolphin extends CraftWaterMob implements Dolphin {
 
     @Override
     public void setMoistness(int moistness) {
-        this.getHandle().setMoisntessLevel(moistness);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setMoisntessLevel(moistness);
+            return null;
+        });
     }
 
     @Override
     public void setHasFish(boolean hasFish) {
-        this.getHandle().setGotFish(hasFish);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setGotFish(hasFish);
+            return null;
+        });
     }
 
     @Override
@@ -47,7 +54,10 @@ public class CraftDolphin extends CraftWaterMob implements Dolphin {
 
     @Override
     public void setTreasureLocation(org.bukkit.Location location) {
-        this.getHandle().setTreasurePos(io.papermc.paper.util.MCUtil.toBlockPosition(location));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setTreasurePos(io.papermc.paper.util.MCUtil.toBlockPosition(location));
+            return null;
+        });
     }
     // Paper end - Missing Dolphin API
 }

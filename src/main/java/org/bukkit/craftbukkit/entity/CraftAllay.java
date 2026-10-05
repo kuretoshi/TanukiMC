@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.animal.allay.Allay;
 import org.bukkit.Location;
@@ -38,7 +39,10 @@ public class CraftAllay extends CraftCreature implements org.bukkit.entity.Allay
 
     @Override
     public void setCanDuplicate(boolean canDuplicate) {
-        this.getHandle().setCanDuplicate(canDuplicate);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setCanDuplicate(canDuplicate);
+            return null;
+        });
     }
 
     @Override
@@ -48,12 +52,18 @@ public class CraftAllay extends CraftCreature implements org.bukkit.entity.Allay
 
     @Override
     public void setDuplicationCooldown(long l) {
-        this.getHandle().duplicationCooldown = l;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().duplicationCooldown = l;
+            return null;
+        });
     }
 
     @Override
     public void resetDuplicationCooldown() {
-        this.getHandle().resetDuplicationCooldown();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().resetDuplicationCooldown();
+            return null;
+        });
     }
 
     @Override
@@ -63,28 +73,39 @@ public class CraftAllay extends CraftCreature implements org.bukkit.entity.Allay
 
     @Override
     public void startDancing(Location location) {
-        Preconditions.checkArgument(location != null, "Location cannot be null");
-        Preconditions.checkArgument(location.getBlock().getType().equals(Material.JUKEBOX), "The Block in the Location need to be a JukeBox");
-        this.getHandle().setJukeboxPlaying(CraftLocation.toBlockPosition(location), true);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(location != null, "Location cannot be null");
+            Preconditions.checkArgument(location.getBlock().getType().equals(Material.JUKEBOX), "The Block in the Location need to be a JukeBox");
+            this.getHandle().setJukeboxPlaying(CraftLocation.toBlockPosition(location), true);
+            return null;
+        });
     }
 
     @Override
     public void startDancing() {
-        this.getHandle().forceDancing = true;
-        this.getHandle().setDancing(true);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().forceDancing = true;
+            this.getHandle().setDancing(true);
+            return null;
+        });
     }
 
     @Override
     public void stopDancing() {
-        this.getHandle().forceDancing = false;
-        this.getHandle().jukeboxPos = null;
-        this.getHandle().setDancing(false); // Paper - Directly modify set dancing to avoid NPE
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().forceDancing = false;
+            this.getHandle().jukeboxPos = null;
+            this.getHandle().setDancing(false); // Paper - Directly modify set dancing to avoid NPE
+            return null;
+        });
     }
 
     @Override
     public org.bukkit.entity.Allay duplicateAllay() {
-        Allay nmsAllay = this.getHandle().duplicateAllay0();
-        return (nmsAllay != null) ? (org.bukkit.entity.Allay) nmsAllay.getBukkitEntity() : null;
+        return ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Allay nmsAllay = this.getHandle().duplicateAllay0();
+            return (nmsAllay != null) ? (org.bukkit.entity.Allay) nmsAllay.getBukkitEntity() : null;
+        });
     }
 
     public Location getJukebox() {

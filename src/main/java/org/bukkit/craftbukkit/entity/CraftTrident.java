@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.projectile.ThrownTrident;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -24,7 +25,10 @@ public class CraftTrident extends CraftAbstractArrow implements Trident {
 
     @Override
     public void setItem(ItemStack itemStack) {
-        this.getHandle().pickupItemStack = CraftItemStack.asNMSCopy(itemStack);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().pickupItemStack = CraftItemStack.asNMSCopy(itemStack);
+            return null;
+        });
     }
 
     @Override
@@ -40,7 +44,10 @@ public class CraftTrident extends CraftAbstractArrow implements Trident {
 
     @Override
     public void setGlint(boolean glint) {
-        this.getHandle().setFoil(glint);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setFoil(glint);
+            return null;
+        });
     }
 
     @Override
@@ -50,8 +57,11 @@ public class CraftTrident extends CraftAbstractArrow implements Trident {
 
     @Override
     public void setLoyaltyLevel(int loyaltyLevel) {
-        com.google.common.base.Preconditions.checkArgument(loyaltyLevel >= 0 && loyaltyLevel <= 127, "The loyalty level has to be between 0 and 127");
-        this.getHandle().setLoyalty((byte) loyaltyLevel);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            com.google.common.base.Preconditions.checkArgument(loyaltyLevel >= 0 && loyaltyLevel <= 127, "The loyalty level has to be between 0 and 127");
+            this.getHandle().setLoyalty((byte) loyaltyLevel);
+            return null;
+        });
     }
 
     @Override
@@ -61,7 +71,10 @@ public class CraftTrident extends CraftAbstractArrow implements Trident {
 
     @Override
     public void setHasDealtDamage(boolean hasDealtDamage) {
-        this.getHandle().dealtDamage = hasDealtDamage;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().dealtDamage = hasDealtDamage;
+            return null;
+        });
     }
     // Paper end
 }

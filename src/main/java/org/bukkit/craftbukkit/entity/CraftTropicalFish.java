@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.HashMap;
 import java.util.Map;
 import org.bukkit.DyeColor;
@@ -29,7 +30,10 @@ public class CraftTropicalFish extends io.papermc.paper.entity.PaperSchoolableFi
 
     @Override
     public void setPatternColor(DyeColor color) {
-        this.getHandle().setPackedVariant(CraftTropicalFish.getData(color, this.getBodyColor(), this.getPattern()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setPackedVariant(CraftTropicalFish.getData(color, this.getBodyColor(), this.getPattern()));
+            return null;
+        });
     }
 
     @Override
@@ -39,7 +43,10 @@ public class CraftTropicalFish extends io.papermc.paper.entity.PaperSchoolableFi
 
     @Override
     public void setBodyColor(DyeColor color) {
-        this.getHandle().setPackedVariant(CraftTropicalFish.getData(this.getPatternColor(), color, this.getPattern()));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setPackedVariant(CraftTropicalFish.getData(this.getPatternColor(), color, this.getPattern()));
+            return null;
+        });
     }
 
     @Override
@@ -49,7 +56,10 @@ public class CraftTropicalFish extends io.papermc.paper.entity.PaperSchoolableFi
 
     @Override
     public void setPattern(Pattern pattern) {
-        this.getHandle().setPackedVariant(CraftTropicalFish.getData(this.getPatternColor(), this.getBodyColor(), pattern));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setPackedVariant(CraftTropicalFish.getData(this.getPatternColor(), this.getBodyColor(), pattern));
+            return null;
+        });
     }
 
     public static enum CraftPattern {

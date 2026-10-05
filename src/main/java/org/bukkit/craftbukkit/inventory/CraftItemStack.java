@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.mohistmc.youer.threading.ThreadedServer;
 import java.util.Map;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentPatch;
@@ -199,23 +200,26 @@ public final class CraftItemStack extends ItemStack {
 
     @Override
     public void setType(Material type) {
-        if (this.getType() == type) {
-            return;
-        } else if (type == Material.AIR) {
-            this.handle = null;
-        } else if (CraftItemType.bukkitToMinecraft(type) == null) { // :(
-            this.handle = null;
-        } else if (this.handle == null) {
-            this.handle = new net.minecraft.world.item.ItemStack(CraftItemType.bukkitToMinecraft(type), 1);
-        } else {
-            final Material oldType = CraftMagicNumbers.getMaterial(this.handle.getItem()); // Paper
-            this.handle.setItem(CraftItemType.bukkitToMinecraft(type));
-            if (this.hasItemMeta()) {
-                // This will create the appropriate item meta, which will contain all the data we intend to keep
-                this.adjustTagForItemMeta(oldType); // Paper
+        ThreadedServer.withWorldMutationLock(() -> {
+            if (this.getType() == type) {
+                return null;
+            } else if (type == Material.AIR) {
+                this.handle = null;
+            } else if (CraftItemType.bukkitToMinecraft(type) == null) { // :(
+                this.handle = null;
+            } else if (this.handle == null) {
+                this.handle = new net.minecraft.world.item.ItemStack(CraftItemType.bukkitToMinecraft(type), 1);
+            } else {
+                final Material oldType = CraftMagicNumbers.getMaterial(this.handle.getItem()); // Paper
+                this.handle.setItem(CraftItemType.bukkitToMinecraft(type));
+                if (this.hasItemMeta()) {
+                    // This will create the appropriate item meta, which will contain all the data we intend to keep
+                    this.adjustTagForItemMeta(oldType); // Paper
+                }
             }
-        }
-        this.setData(null);
+            this.setData(null);
+            return null;
+        });
     }
 
     @Override
@@ -225,22 +229,28 @@ public final class CraftItemStack extends ItemStack {
 
     @Override
     public void setAmount(int amount) {
-        if (this.handle == null) {
-            return;
-        }
+        ThreadedServer.withWorldMutationLock(() -> {
+            if (this.handle == null) {
+                return null;
+            }
 
-        this.handle.setCount(amount);
-        if (false && amount == 0) { // Paper - remove CraftItemStack#setAmount null assignment
-            this.handle = null;
-        }
+            this.handle.setCount(amount);
+            if (false && amount == 0) { // Paper - remove CraftItemStack#setAmount null assignment
+                this.handle = null;
+            }
+            return null;
+        });
     }
 
     @Override
     public void setDurability(final short durability) {
-        // Ignore damage if item is null
-        if (this.handle != null) {
-            this.handle.setDamageValue(durability);
-        }
+        ThreadedServer.withWorldMutationLock(() -> {
+            // Ignore damage if item is null
+            if (this.handle != null) {
+                this.handle.setDamageValue(durability);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -274,18 +284,21 @@ public final class CraftItemStack extends ItemStack {
 
     @Override
     public void addUnsafeEnchantment(Enchantment ench, int level) {
-        Preconditions.checkArgument(ench != null, "Enchantment cannot be null");
+        ThreadedServer.withWorldMutationLock(() -> {
+            Preconditions.checkArgument(ench != null, "Enchantment cannot be null");
 
-        if (!CraftItemStack.makeTag(this.handle)) {
-            return;
-        }
-        ItemEnchantments list = CraftItemStack.getEnchantmentList(this.handle);
-        if (list == null) {
-            list = ItemEnchantments.EMPTY;
-        }
-        ItemEnchantments.Mutable listCopy = new ItemEnchantments.Mutable(list);
-        listCopy.set(CraftEnchantment.bukkitToMinecraftHolder(ench), level);
-        this.handle.set(DataComponents.ENCHANTMENTS, listCopy.toImmutable());
+            if (!CraftItemStack.makeTag(this.handle)) {
+                return null;
+            }
+            ItemEnchantments list = CraftItemStack.getEnchantmentList(this.handle);
+            if (list == null) {
+                list = ItemEnchantments.EMPTY;
+            }
+            ItemEnchantments.Mutable listCopy = new ItemEnchantments.Mutable(list);
+            listCopy.set(CraftEnchantment.bukkitToMinecraftHolder(ench), level);
+            this.handle.set(DataComponents.ENCHANTMENTS, listCopy.toImmutable());
+            return null;
+        });
     }
 
     static boolean makeTag(net.minecraft.world.item.ItemStack item) {
@@ -312,35 +325,40 @@ public final class CraftItemStack extends ItemStack {
 
     @Override
     public int removeEnchantment(Enchantment ench) {
-        Preconditions.checkArgument(ench != null, "Enchantment cannot be null");
+        return ThreadedServer.withWorldMutationLock(() -> {
+            Preconditions.checkArgument(ench != null, "Enchantment cannot be null");
 
-        ItemEnchantments list = CraftItemStack.getEnchantmentList(this.handle);
-        if (list == null) {
-            return 0;
-        }
-        int level = this.getEnchantmentLevel(ench);
-        if (level <= 0) {
-            return 0;
-        }
-        int size = list.size();
+            ItemEnchantments list = CraftItemStack.getEnchantmentList(this.handle);
+            if (list == null) {
+                return 0;
+            }
+            int level = this.getEnchantmentLevel(ench);
+            if (level <= 0) {
+                return 0;
+            }
+            int size = list.size();
 
-        if (size == 1) {
-            this.handle.remove(DataComponents.ENCHANTMENTS);
+            if (size == 1) {
+                this.handle.remove(DataComponents.ENCHANTMENTS);
+                return level;
+            }
+
+            ItemEnchantments.Mutable listCopy = new ItemEnchantments.Mutable(list);
+            listCopy.set(CraftEnchantment.bukkitToMinecraftHolder(ench), -1); // Negative to remove
+            this.handle.set(DataComponents.ENCHANTMENTS, listCopy.toImmutable());
+
             return level;
-        }
-
-        ItemEnchantments.Mutable listCopy = new ItemEnchantments.Mutable(list);
-        listCopy.set(CraftEnchantment.bukkitToMinecraftHolder(ench), -1); // Negative to remove
-        this.handle.set(DataComponents.ENCHANTMENTS, listCopy.toImmutable());
-
-        return level;
+        });
     }
 
     @Override
     public void removeEnchantments() {
-        if (this.handle != null) { // Paper - fix NPE
-            this.handle.set(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY); // Paper - set to default instead of removing the component
-        } // Paper
+        ThreadedServer.withWorldMutationLock(() -> {
+            if (this.handle != null) { // Paper - fix NPE
+                this.handle.set(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY); // Paper - set to default instead of removing the component
+            } // Paper
+            return null;
+        });
     }
 
     @Override
@@ -440,37 +458,39 @@ public final class CraftItemStack extends ItemStack {
     }
 
     public static boolean setItemMeta(net.minecraft.world.item.ItemStack item, ItemMeta itemMeta) {
-        if (item == null) {
-            return false;
-        }
-        if (CraftItemFactory.instance().equals(itemMeta, null)) {
-            item.restorePatch(DataComponentPatch.EMPTY);
+        return ThreadedServer.withWorldMutationLock(() -> {
+            if (item == null) {
+                return false;
+            }
+            if (CraftItemFactory.instance().equals(itemMeta, null)) {
+                item.restorePatch(DataComponentPatch.EMPTY);
+                return true;
+            }
+            if (!CraftItemFactory.instance().isApplicable(itemMeta, CraftItemStack.getType(item))) {
+                return false;
+            }
+
+            ItemMeta applicableMeta = CraftItemFactory.instance().asMetaFor(itemMeta, CraftItemStack.getType(item));
+            if (applicableMeta == null) return true;
+
+            if (!((CraftMetaItem) applicableMeta).isEmpty()) {
+                // Paper start - support updating profile after resolving it
+                CraftMetaItem.Applicator tag = new CraftMetaItem.Applicator() {
+                    @Override
+                    void skullCallback(final net.minecraft.world.item.component.ResolvableProfile resolvableProfile) {
+                        item.set(DataComponents.PROFILE, resolvableProfile);
+                    }
+                };
+                // Paper end - support updating profile after resolving it
+
+                ((CraftMetaItem) applicableMeta).applyToItem(tag);
+                item.restorePatch(DataComponentPatch.EMPTY); // Paper - properly apply the new patch from itemmeta
+                item.applyComponents(tag.build()); // Paper - properly apply the new patch from itemmeta
+            }
+            // Paper - this is no longer needed
+
             return true;
-        }
-        if (!CraftItemFactory.instance().isApplicable(itemMeta, CraftItemStack.getType(item))) {
-            return false;
-        }
-
-        itemMeta = CraftItemFactory.instance().asMetaFor(itemMeta, CraftItemStack.getType(item));
-        if (itemMeta == null) return true;
-
-        if (!((CraftMetaItem) itemMeta).isEmpty()) {
-            // Paper start - support updating profile after resolving it
-            CraftMetaItem.Applicator tag = new CraftMetaItem.Applicator() {
-                @Override
-                void skullCallback(final net.minecraft.world.item.component.ResolvableProfile resolvableProfile) {
-                    item.set(DataComponents.PROFILE, resolvableProfile);
-                }
-            };
-            // Paper end - support updating profile after resolving it
-
-            ((CraftMetaItem) itemMeta).applyToItem(tag);
-            item.restorePatch(DataComponentPatch.EMPTY); // Paper - properly apply the new patch from itemmeta
-            item.applyComponents(tag.build()); // Paper - properly apply the new patch from itemmeta
-        }
-        // Paper - this is no longer needed
-
-        return true;
+        });
     }
 
     @Override

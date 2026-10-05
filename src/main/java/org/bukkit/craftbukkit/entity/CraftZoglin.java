@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Zoglin;
 
@@ -16,7 +17,10 @@ public class CraftZoglin extends CraftMonster implements Zoglin {
 
     @Override
     public void setBaby(boolean flag) {
-        this.getHandle().setBaby(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(flag);
+            return null;
+        });
     }
 
     @Override
@@ -36,7 +40,10 @@ public class CraftZoglin extends CraftMonster implements Zoglin {
 
     @Override
     public void setAge(int i) {
-        this.getHandle().setBaby(i < 0);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(i < 0);
+            return null;
+        });
     }
 
     @Override
@@ -50,12 +57,18 @@ public class CraftZoglin extends CraftMonster implements Zoglin {
 
     @Override
     public void setBaby() {
-        this.getHandle().setBaby(true);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(true);
+            return null;
+        });
     }
 
     @Override
     public void setAdult() {
-        this.getHandle().setBaby(false);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setBaby(false);
+            return null;
+        });
     }
 
     @Override

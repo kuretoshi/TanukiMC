@@ -143,7 +143,15 @@
  
  public class ServerLevel extends Level implements WorldGenLevel {
      public static final BlockPos END_SPAWN_POINT = new BlockPos(100, 50, 0);
-@@ -199,12 +_,84 @@
+@@ -193,18 +_,90 @@
+     final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>();
+     volatile boolean isUpdatingNavigations;
+     protected final Raids raids;
+-    private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
+-    private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
++    private final com.mohistmc.youer.threading.PartitionedEventQueue<BlockEventData> blockEvents =
++        new com.mohistmc.youer.threading.PartitionedEventQueue<>(event -> ChunkPos.asLong(event.pos()));
+     private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
@@ -445,7 +453,7 @@
              if (this.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE) && this.isRaining()) {
                  this.resetWeatherCycle();
              }
-@@ -356,36 +_,50 @@
+@@ -356,36 +_,60 @@
              this.tickTime();
          }
  
@@ -456,13 +464,23 @@
 +            PulseGrasp.feelPulse("blockTicks");
              profilerfiller.push("blockTicks");
 -            this.blockTicks.tick(k, 65536, this::tickBlock);
-+            this.blockTicks.tick(k, paperConfig().environment.maxBlockTicks, this::tickBlock); // Paper - configurable max block ticks
++            if (com.mohistmc.youer.threading.ThreadedServer.enabled() && com.mohistmc.youer.YouerConfig.threaded_world_ticks) {
++                com.mohistmc.youer.threading.ThreadedRegionScheduler.get().tickScheduled(this, this.blockTicks, k,
++                    paperConfig().environment.maxBlockTicks, this::tickBlock);
++            } else {
++                this.blockTicks.tick(k, paperConfig().environment.maxBlockTicks, this::tickBlock); // Paper - configurable max block ticks
++            }
 +            profilerfiller.pop();
 +            PulseGrasp.pulseComplete();
 +            PulseGrasp.feelPulse("fluidTicks");
              profilerfiller.popPush("fluidTicks");
 -            this.fluidTicks.tick(k, 65536, this::tickFluid);
-+            this.fluidTicks.tick(k, paperConfig().environment.maxFluidTicks, this::tickFluid); // Paper - configurable max block ticks
++            if (com.mohistmc.youer.threading.ThreadedServer.enabled() && com.mohistmc.youer.YouerConfig.threaded_world_ticks) {
++                com.mohistmc.youer.threading.ThreadedRegionScheduler.get().tickScheduled(this, this.fluidTicks, k,
++                    paperConfig().environment.maxFluidTicks, this::tickFluid);
++            } else {
++                this.fluidTicks.tick(k, paperConfig().environment.maxFluidTicks, this::tickFluid); // Paper - configurable max block ticks
++            }
              profilerfiller.pop();
 +            PulseGrasp.pulseComplete();
          }
@@ -499,38 +517,100 @@
              profilerfiller.push("entities");
              if (this.dragonFight != null && flag) {
                  profilerfiller.push("dragonFight");
-@@ -393,6 +_,7 @@
+@@ -393,38 +_,87 @@
                  profilerfiller.pop();
              }
  
+-            this.entityTickList.forEach(p_308566_ -> {
+-                if (!p_308566_.isRemoved()) {
 +            // org.spigotmc.ActivationRange.activateEntities(this); // Spigot
-             this.entityTickList.forEach(p_308566_ -> {
-                 if (!p_308566_.isRemoved()) {
++            java.util.function.Consumer<Entity> entityTick = p_308566_ -> {
++                boolean ready = com.mohistmc.youer.threading.ThreadedServer.onMainThreadIfRegionThread(() -> {
++                    if (p_308566_.isRemoved()) {
++                        return false;
++                    }
                      if (this.shouldDiscardEntity(p_308566_)) {
-@@ -412,19 +_,38 @@
-                             }
- 
-                             profilerfiller.push("tick");
+                         p_308566_.discard();
+-                    } else if (!tickratemanager.isEntityFrozen(p_308566_)) {
+-                        profilerfiller.push("checkDespawn");
++                        return false;
++                    }
++                    if (tickratemanager.isEntityFrozen(p_308566_)) {
++                        return false;
++                    }
++                    ProfilerFiller preparationProfiler = this.getProfiler();
++                    preparationProfiler.push("checkDespawn");
++                    try {
+                         p_308566_.checkDespawn();
+-                        profilerfiller.pop();
+-                        if (this.chunkSource.chunkMap.getDistanceManager().inEntityTickingRange(p_308566_.chunkPosition().toLong())) {
+-                            Entity entity = p_308566_.getVehicle();
+-                            if (entity != null) {
+-                                if (!entity.isRemoved() && entity.hasPassenger(p_308566_)) {
+-                                    return;
+-                                }
+-
+-                                p_308566_.stopRiding();
+-                            }
+-
+-                            profilerfiller.push("tick");
 -                            this.guardEntityTick(this::tickNonPassenger, p_308566_);
-+                            if (!p_308566_.isRemoved() && !(p_308566_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
-+                                long entityStart = PulseGrasp.isGrasping() ? System.nanoTime() : 0L;
-+                                this.guardEntityTick(this::tickNonPassenger, p_308566_);
-+                                if (PulseGrasp.isGrasping()) {
-+                                    PulseGrasp.recordEntityPulse(
-+                                            BuiltInRegistries.ENTITY_TYPE.getKey(p_308566_.getType()).toString(),
-+                                            System.nanoTime() - entityStart,
-+                                            p_308566_.getUUID(),
-+                                            p_308566_.level().dimension().location().toString(),
-+                                            p_308566_.blockPosition().getX(),
-+                                            p_308566_.blockPosition().getY(),
-+                                            p_308566_.blockPosition().getZ());
-+                                }
-+                            }
-                             profilerfiller.pop();
-                         }
-                     }
-                 }
-             });
+-                            profilerfiller.pop();
+-                        }
+-                    }
+-                }
+-            });
++                    } finally {
++                        preparationProfiler.pop();
++                    }
++                    if (!this.chunkSource.chunkMap.getDistanceManager().inEntityTickingRange(p_308566_.chunkPosition().toLong())) {
++                        return false;
++                    }
++                    Entity vehicle = p_308566_.getVehicle();
++                    if (vehicle != null) {
++                        if (!vehicle.isRemoved() && vehicle.hasPassenger(p_308566_)) {
++                            return false;
++                        }
++
++                        p_308566_.stopRiding();
++                    }
++                    return true;
++                });
++                if (ready) {
++                    ProfilerFiller entityProfiler = this.getProfiler();
++                    entityProfiler.push("tick");
++                    if (!p_308566_.isRemoved() && !(p_308566_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
++                        long entityStart = PulseGrasp.isGrasping() ? System.nanoTime() : 0L;
++                        this.guardEntityTick(this::tickNonPassenger, p_308566_);
++                        if (PulseGrasp.isGrasping()) {
++                            PulseGrasp.recordEntityPulse(
++                                    BuiltInRegistries.ENTITY_TYPE.getKey(p_308566_.getType()).toString(),
++                                    System.nanoTime() - entityStart,
++                                    p_308566_.getUUID(),
++                                    p_308566_.level().dimension().location().toString(),
++                                    p_308566_.blockPosition().getX(),
++                                    p_308566_.blockPosition().getY(),
++                                    p_308566_.blockPosition().getZ());
++                        }
++                    }
++                    entityProfiler.pop();
++                }
++            };
++            if (com.mohistmc.youer.threading.ThreadedServer.enabled() && com.mohistmc.youer.YouerConfig.threaded_world_ticks) {
++                List<Entity> regionEntities = new ArrayList<>();
++                for (Entity entity : this.entityTickList.snapshot()) {
++                    if (entity instanceof ServerPlayer) {
++                        entityTick.accept(entity);
++                    } else {
++                        regionEntities.add(entity);
++                    }
++                }
++                if (!regionEntities.isEmpty()) {
++                    com.mohistmc.youer.threading.ThreadedRegionScheduler.get().tickEntities(this, regionEntities, entityTick);
++                }
++            } else {
++                this.entityTickList.forEach(entityTick);
++            }
              profilerfiller.pop();
 +            PulseGrasp.pulseComplete();
 +            PulseGrasp.feelPulse("blockEntities");
@@ -629,7 +709,7 @@
          if (biome.shouldFreeze(this, blockpos1)) {
 +            this.callEvent(true);
              this.setBlockAndUpdate(blockpos1, Blocks.ICE.defaultBlockState());
-+            CraftEventFactory.handleBlockFormEvent(this, blockpos1, this.youer$defaultBlockState, null); // CraftBukkit
++            CraftEventFactory.handleBlockFormEvent(this, blockpos1, this.blockFormState(), null); // CraftBukkit
          }
  
          if (this.isRaining()) {
@@ -639,12 +719,12 @@
                          Block.pushEntitiesUp(blockstate, blockstate1, this, blockpos);
 +                        this.callEvent(true);
                          this.setBlockAndUpdate(blockpos, blockstate1);
-+                        CraftEventFactory.handleBlockFormEvent(this, blockpos, this.youer$defaultBlockState, null); // CraftBukkit
++                        CraftEventFactory.handleBlockFormEvent(this, blockpos, this.blockFormState(), null); // CraftBukkit
                      }
                  } else {
 +                    this.callEvent(true);
                      this.setBlockAndUpdate(blockpos, Blocks.SNOW.defaultBlockState());
-+                    CraftEventFactory.handleBlockFormEvent(this, blockpos, this.youer$defaultBlockState, null); // CraftBukkit
++                    CraftEventFactory.handleBlockFormEvent(this, blockpos, this.blockFormState(), null); // CraftBukkit
                  }
              }
  
@@ -1138,6 +1218,34 @@
          if (!explosion.interactsWithBlocks()) {
              explosion.clearToBlow();
          }
+@@ -1140,10 +_,10 @@
+     }
+ 
+     private void runBlockEvents() {
+-        this.blockEventsToReschedule.clear();
++        List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
+ 
+-        while (!this.blockEvents.isEmpty()) {
+-            BlockEventData blockeventdata = this.blockEvents.removeFirst();
++        BlockEventData blockeventdata;
++        while ((blockeventdata = this.blockEvents.pollFirst()) != null) {
+             if (this.shouldTickBlocksAt(blockeventdata.pos())) {
+                 if (this.doBlockEvent(blockeventdata)) {
+                     this.server
+@@ -1159,11 +_,11 @@
+                         );
+                 }
+             } else {
+-                this.blockEventsToReschedule.add(blockeventdata);
++                blockEventsToReschedule.add(blockeventdata);
+             }
+         }
+ 
+-        this.blockEvents.addAll(this.blockEventsToReschedule);
++        this.blockEvents.addAll(blockEventsToReschedule);
+     }
+ 
+     private boolean doBlockEvent(BlockEventData p_8699_) {
 @@ -1196,14 +_,24 @@
      public <T extends ParticleOptions> int sendParticles(
          T p_8768_, double p_8769_, double p_8770_, double p_8771_, int p_8772_, double p_8773_, double p_8774_, double p_8775_, double p_8776_
@@ -1254,15 +1362,40 @@
      }
  
      @Nullable
-@@ -1688,11 +_,18 @@
+@@ -1684,18 +_,53 @@
+         }
+ 
+         public void onDestroyed(Entity p_143359_) {
++            if (com.mohistmc.youer.threading.ThreadedServer.isRegionThread()) {
++                com.mohistmc.youer.threading.ThreadedServer.onMainThreadIfRegionThread(() -> {
++                    this.onDestroyed(p_143359_);
++                    return null;
++                });
++                return;
++            }
+             ServerLevel.this.getScoreboard().entityRemoved(p_143359_);
          }
  
          public void onTickingStart(Entity p_143363_) {
++            if (com.mohistmc.youer.threading.ThreadedServer.isRegionThread()) {
++                com.mohistmc.youer.threading.ThreadedServer.onMainThreadIfRegionThread(() -> {
++                    this.onTickingStart(p_143363_);
++                    return null;
++                });
++                return;
++            }
 +            if (p_143363_ instanceof net.minecraft.world.entity.Marker && !paperConfig().entities.markers.tick) return; // Paper - Configurable marker ticking
              ServerLevel.this.entityTickList.add(p_143363_);
          }
  
          public void onTickingEnd(Entity p_143367_) {
++            if (com.mohistmc.youer.threading.ThreadedServer.isRegionThread()) {
++                com.mohistmc.youer.threading.ThreadedServer.onMainThreadIfRegionThread(() -> {
++                    this.onTickingEnd(p_143367_);
++                    return null;
++                });
++                return;
++            }
              ServerLevel.this.entityTickList.remove(p_143367_);
 +            // Paper start - Reset pearls when they stop being ticked
 +            if (paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && p_143367_ instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl pearl) {
@@ -1273,6 +1406,16 @@
          }
  
          public void onTrackingStart(Entity p_143371_) {
++            if (com.mohistmc.youer.threading.ThreadedServer.isRegionThread()) {
++                com.mohistmc.youer.threading.ThreadedServer.onMainThreadIfRegionThread(() -> {
++                    this.onTrackingStart(p_143371_);
++                    return null;
++                });
++                return;
++            }
+             ServerLevel.this.getChunkSource().addEntity(p_143371_);
+             if (p_143371_ instanceof ServerPlayer serverplayer) {
+                 ServerLevel.this.players.add(serverplayer);
 @@ -1703,7 +_,7 @@
              }
  
@@ -1282,7 +1425,7 @@
                      String s = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -1713,16 +_,66 @@
+@@ -1713,16 +_,73 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -1312,6 +1455,13 @@
          }
  
          public void onTrackingEnd(Entity p_143375_) {
++            if (com.mohistmc.youer.threading.ThreadedServer.isRegionThread()) {
++                com.mohistmc.youer.threading.ThreadedServer.onMainThreadIfRegionThread(() -> {
++                    this.onTrackingEnd(p_143375_);
++                    return null;
++                });
++                return;
++            }
 +            // Spigot start
 +            if ( p_143375_ instanceof Player )
 +            {
@@ -1351,7 +1501,7 @@
              ServerLevel.this.getChunkSource().removeEntity(p_143375_);
              if (p_143375_ instanceof ServerPlayer serverplayer) {
                  ServerLevel.this.players.remove(serverplayer);
-@@ -1730,27 +_,125 @@
+@@ -1730,27 +_,132 @@
              }
  
              if (p_143375_ instanceof Mob mob) {
@@ -1393,6 +1543,13 @@
          }
  
          public void onSectionChange(Entity p_215086_) {
++            if (com.mohistmc.youer.threading.ThreadedServer.isRegionThread()) {
++                com.mohistmc.youer.threading.ThreadedServer.onMainThreadIfRegionThread(() -> {
++                    this.onSectionChange(p_215086_);
++                    return null;
++                });
++                return;
++            }
              p_215086_.updateDynamicGameEventListener(DynamicGameEventListener::move);
          }
      }

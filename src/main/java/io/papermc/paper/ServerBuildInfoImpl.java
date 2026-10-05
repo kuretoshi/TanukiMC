@@ -34,7 +34,9 @@ public record ServerBuildInfoImpl(
     private static final String ATTRIBUTE_GIT_BRANCH = "Git-Branch";
     private static final String ATTRIBUTE_GIT_COMMIT = "Git-Commit";
 
-    private static final String BRAND_PAPER_NAME = "Youer";
+    private static final Key BRAND_TANUKIMC_ID = Key.key("tanukimc", "tanukimc");
+    private static final Key BRAND_YOUER_ID = Key.key("mohistmc", "youer");
+    private static final String BRAND_PAPER_NAME = "TanukiMC";
     private static final String BRAND_PUFFERFISH_NAME = "Pufferfish"; // Purpur
     private static final String BRAND_PURPUR_NAME = "Purpur"; // Purpur
 
@@ -48,7 +50,7 @@ public record ServerBuildInfoImpl(
         this(
             getManifestAttribute(manifest, ATTRIBUTE_BRAND_ID)
                 .map(Key::key)
-                .orElse(BRAND_PAPER_ID),
+                .orElse(BRAND_TANUKIMC_ID),
             getManifestAttribute(manifest, ATTRIBUTE_BRAND_NAME)
                 .orElse(BRAND_PAPER_NAME),
             SharedConstants.getCurrentVersion().getId(),
@@ -67,7 +69,7 @@ public record ServerBuildInfoImpl(
 
     @Override
     public boolean isBrandCompatible(final @NotNull Key brandId) {
-        return brandId.equals(this.brandId) || brandId.equals(BRAND_PAPER_ID); // Purpur
+        return brandId.equals(this.brandId) || brandId.equals(BRAND_PAPER_ID) || brandId.equals(BRAND_YOUER_ID);
     }
 
     @Override

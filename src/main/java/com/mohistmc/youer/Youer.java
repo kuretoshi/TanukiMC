@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 @Mod("youer")
 @OnlyIn(Dist.DEDICATED_SERVER)
 public class Youer {
-    public static final String NAME = "Youer";
+    public static final String NAME = "TanukiMC";
     public static final String modid = "youer";
     public static Logger LOGGER = LogManager.getLogger();
     public static i18n i18n;

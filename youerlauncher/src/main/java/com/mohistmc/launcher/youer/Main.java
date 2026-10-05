@@ -25,7 +25,6 @@ import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
-import com.mohistmc.tools.Logo;
 import com.mohistmc.tools.MojangEulaUtil;
 import com.mohistmc.tools.OSUtil;
 import cpw.mods.bootstraplauncher.BootstrapLauncher;
@@ -56,7 +55,7 @@ public class Main {
         YouerConfigUtil.i18n();
         if (YouerConfigUtil.aBoolean("youer.show_logo", true)) {
             System.out.printf("%n%s%n%s - %s, Java(%s) %s PID: %s%n",
-                    Logo.asYouer(),
+                    "TanukiMC",
                     i18n.as("youer.launch.welcomemessage"),
                     getVersion(),
                     System.getProperty("java.class.version"),

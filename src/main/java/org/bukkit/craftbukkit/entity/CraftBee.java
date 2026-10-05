@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.core.BlockPos;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftServer;
@@ -31,8 +32,11 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public void setHive(Location location) {
-        Preconditions.checkArgument(location == null || this.getWorld().equals(location.getWorld()), "Hive must be in same world");
-        this.getHandle().hivePos = (location == null) ? null : CraftLocation.toBlockPosition(location);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(location == null || this.getWorld().equals(location.getWorld()), "Hive must be in same world");
+            this.getHandle().hivePos = (location == null) ? null : CraftLocation.toBlockPosition(location);
+            return null;
+        });
     }
 
     @Override
@@ -43,8 +47,11 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public void setFlower(Location location) {
-        Preconditions.checkArgument(location == null || this.getWorld().equals(location.getWorld()), "Flower must be in same world");
-        this.getHandle().setSavedFlowerPos(location == null ? null : CraftLocation.toBlockPosition(location));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(location == null || this.getWorld().equals(location.getWorld()), "Flower must be in same world");
+            this.getHandle().setSavedFlowerPos(location == null ? null : CraftLocation.toBlockPosition(location));
+            return null;
+        });
     }
 
     @Override
@@ -54,7 +61,10 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public void setHasNectar(boolean nectar) {
-        this.getHandle().setHasNectar(nectar);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setHasNectar(nectar);
+            return null;
+        });
     }
 
     @Override
@@ -64,7 +74,10 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public void setHasStung(boolean stung) {
-        this.getHandle().setHasStung(stung);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setHasStung(stung);
+            return null;
+        });
     }
 
     @Override
@@ -74,7 +87,10 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public void setAnger(int anger) {
-        this.getHandle().setRemainingPersistentAngerTime(anger);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setRemainingPersistentAngerTime(anger);
+            return null;
+        });
     }
 
     @Override
@@ -84,14 +100,20 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public void setCannotEnterHiveTicks(int ticks) {
-        this.getHandle().setStayOutOfHiveCountdown(ticks);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setStayOutOfHiveCountdown(ticks);
+            return null;
+        });
     }
     // Paper start
     @Override
     public void setRollingOverride(net.kyori.adventure.util.TriState rolling) {
-        this.getHandle().rollingOverride = rolling;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().rollingOverride = rolling;
 
-        this.getHandle().setRolling(this.getHandle().isRolling()); // Refresh rolling state
+            this.getHandle().setRolling(this.getHandle().isRolling()); // Refresh rolling state
+            return null;
+        });
     }
 
     @Override
@@ -106,7 +128,10 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public void setCropsGrownSincePollination(int crops) {
-        this.getHandle().numCropsGrownSincePollination = crops;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().numCropsGrownSincePollination = crops;
+            return null;
+        });
     }
 
     @Override
@@ -116,7 +141,10 @@ public class CraftBee extends CraftAnimals implements Bee {
 
     @Override
     public void setTicksSincePollination(int ticks) {
-        this.getHandle().ticksWithoutNectarSinceExitingHive = ticks;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().ticksWithoutNectarSinceExitingHive = ticks;
+            return null;
+        });
     }
 
     @Override

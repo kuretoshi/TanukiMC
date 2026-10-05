@@ -102,31 +102,37 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setHealth(double health) {
-        health = (float) health;
-        // Paper start - Be more informative
-        Preconditions.checkArgument(health >= 0 && health <= this.getMaxHealth(),
-                "Health value (%s) must be between 0 and %s. (attribute base value: %s%s)",
-                health, this.getMaxHealth(), this.getHandle().getAttribute(Attributes.MAX_HEALTH).getBaseValue(), this instanceof CraftPlayer ? ", player: " + this.getName() : ""
-        );
-        // Paper end
+        final double finalHealth = (float) health;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            // Paper start - Be more informative
+            Preconditions.checkArgument(finalHealth >= 0 && finalHealth <= this.getMaxHealth(),
+                    "Health value (%s) must be between 0 and %s. (attribute base value: %s%s)",
+                    finalHealth, this.getMaxHealth(), this.getHandle().getAttribute(Attributes.MAX_HEALTH).getBaseValue(), this instanceof CraftPlayer ? ", player: " + this.getName() : ""
+            );
+            // Paper end
 
-        // during world generation, we don't want to run logic for dropping items and xp
-        if (this.getHandle().generation && health == 0) {
-            this.getHandle().discard(null); // Add Bukkit remove cause
-            return;
-        }
+            // during world generation, we don't want to run logic for dropping items and xp
+            if (this.getHandle().generation && finalHealth == 0) {
+                this.getHandle().discard(null); // Add Bukkit remove cause
+                return null;
+            }
 
-        this.getHandle().setHealth((float) health);
+            this.getHandle().setHealth((float) finalHealth);
 
-        if (health == 0) {
-            this.getHandle().die(this.getHandle().damageSources().generic());
-        }
+            if (finalHealth == 0) {
+                this.getHandle().die(this.getHandle().damageSources().generic());
+            }
+            return null;
+        });
     }
 
     // Paper start - entity heal API
     @Override
     public void heal(final double amount, final org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason reason) {
-        this.getHandle().heal((float) amount, reason);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().heal((float) amount, reason);
+            return null;
+        });
     }
     // Paper end - entity heal API
 
@@ -137,9 +143,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setAbsorptionAmount(double amount) {
-        Preconditions.checkArgument(amount >= 0 && Double.isFinite(amount), "amount < 0 or non-finite");
-
-        this.getHandle().setAbsorptionAmount((float) amount);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(amount >= 0 && Double.isFinite(amount), "amount < 0 or non-finite");
+            this.getHandle().setAbsorptionAmount((float) amount);
+            return null;
+        });
     }
 
     @Override
@@ -149,13 +157,15 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setMaxHealth(double amount) {
-        Preconditions.checkArgument(amount > 0, "Max health amount (%s) must be greater than 0", amount);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(amount > 0, "Max health amount (%s) must be greater than 0", amount);
+            this.getHandle().getAttribute(Attributes.MAX_HEALTH).setBaseValue(amount);
 
-        this.getHandle().getAttribute(Attributes.MAX_HEALTH).setBaseValue(amount);
-
-        if (this.getHealth() > amount) {
-            this.setHealth(amount);
-        }
+            if (this.getHealth() > amount) {
+                this.setHealth(amount);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -306,7 +316,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setRemainingAir(int ticks) {
-        this.getHandle().setAirSupply(ticks);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setAirSupply(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -316,7 +329,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setMaximumAir(int ticks) {
-        this.getHandle().maxAirTicks = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().maxAirTicks = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -332,7 +348,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setItemInUseTicks(int ticks) {
-        this.getHandle().useItemRemaining = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().useItemRemaining = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -342,7 +361,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setArrowCooldown(int ticks) {
-        this.getHandle().removeArrowTime = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().removeArrowTime = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -352,14 +374,17 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setArrowsInBody(final int count, final boolean fireEvent) { // Paper
-        Preconditions.checkArgument(count >= 0, "New arrow amount must be >= 0");
-        if (!fireEvent) { // Paper
-            this.getHandle().getEntityData().set(net.minecraft.world.entity.LivingEntity.DATA_ARROW_COUNT_ID, count);
-            // Paper start
-        } else {
-            this.getHandle().setArrowCount(count);
-        }
-        // Paper end
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(count >= 0, "New arrow amount must be >= 0");
+            if (!fireEvent) { // Paper
+                this.getHandle().getEntityData().set(net.minecraft.world.entity.LivingEntity.DATA_ARROW_COUNT_ID, count);
+                // Paper start
+            } else {
+                this.getHandle().setArrowCount(count);
+            }
+            // Paper end
+            return null;
+        });
     }
     // Paper start - Bee Stinger API
     @Override
@@ -370,8 +395,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     // Paper start - Add methods for working with arrows stuck in living entities
     @Override
     public void setNextArrowRemoval(final int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "New amount of ticks before next arrow removal must be >= 0");
-        this.getHandle().removeArrowTime = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "New amount of ticks before next arrow removal must be >= 0");
+            this.getHandle().removeArrowTime = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -382,7 +410,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setBeeStingerCooldown(int ticks) {
-        getHandle().removeStingerTime = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().removeStingerTime = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -392,14 +423,20 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setBeeStingersInBody(int count) {
-        Preconditions.checkArgument(count >= 0, "New bee stinger amount must be >= 0");
-        getHandle().setStingerCount(count);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(count >= 0, "New bee stinger amount must be >= 0");
+            getHandle().setStingerCount(count);
+            return null;
+        });
     }
 
     @Override
     public void setNextBeeStingerRemoval(final int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "New amount of ticks before next bee stinger removal must be >= 0");
-        this.getHandle().removeStingerTime = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "New amount of ticks before next bee stinger removal must be >= 0");
+            this.getHandle().removeStingerTime = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -434,10 +471,13 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     }
 
     private void damage(double amount, DamageSource damageSource) {
-        Preconditions.checkArgument(damageSource != null, "damageSource cannot be null");
-        Preconditions.checkState(!this.getHandle().generation, "Cannot damage entity during world generation");
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(damageSource != null, "damageSource cannot be null");
+            Preconditions.checkState(!this.getHandle().generation, "Cannot damage entity during world generation");
 
-        this.entity.hurt(damageSource, (float) amount);
+            this.entity.hurt(damageSource, (float) amount);
+            return null;
+        });
     }
 
     @Override
@@ -454,7 +494,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setMaximumNoDamageTicks(int ticks) {
-        this.getHandle().invulnerableDuration = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().invulnerableDuration = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -464,7 +507,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setLastDamage(double damage) {
-        this.getHandle().lastHurt = (float) damage;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().lastHurt = (float) damage;
+            return null;
+        });
     }
 
     @Override
@@ -474,7 +520,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setNoDamageTicks(int ticks) {
-        this.getHandle().invulnerableTime = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().invulnerableTime = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -484,8 +533,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setNoActionTicks(int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "ticks must be >= 0");
-        this.getHandle().setNoActionTime(ticks);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "ticks must be >= 0");
+            this.getHandle().setNoActionTime(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -510,10 +562,13 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     // Paper start
     @Override
     public void setKiller(Player killer) {
-        net.minecraft.server.level.ServerPlayer entityPlayer = killer == null ? null : ((CraftPlayer) killer).getHandle();
-        getHandle().lastHurtByPlayer = entityPlayer;
-        getHandle().lastHurtByMob = entityPlayer;
-        getHandle().lastHurtByPlayerTime = entityPlayer == null ? 0 : 100; // 100 value taken from EntityLiving#damageEntity
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            net.minecraft.server.level.ServerPlayer entityPlayer = killer == null ? null : ((CraftPlayer) killer).getHandle();
+            getHandle().lastHurtByPlayer = entityPlayer;
+            getHandle().lastHurtByMob = entityPlayer;
+            getHandle().lastHurtByPlayerTime = entityPlayer == null ? 0 : 100; // 100 value taken from EntityLiving#damageEntity
+            return null;
+        });
     }
     // Paper end
 
@@ -524,17 +579,21 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public boolean addPotionEffect(PotionEffect effect, boolean force) {
-        this.getHandle().addEffect(org.bukkit.craftbukkit.potion.CraftPotionUtil.fromBukkit(effect), EntityPotionEffectEvent.Cause.PLUGIN); // Paper - Don't ignore icon
-        return true;
+        return this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().addEffect(org.bukkit.craftbukkit.potion.CraftPotionUtil.fromBukkit(effect), EntityPotionEffectEvent.Cause.PLUGIN); // Paper - Don't ignore icon
+            return true;
+        });
     }
 
     @Override
     public boolean addPotionEffects(Collection<PotionEffect> effects) {
-        boolean success = true;
-        for (PotionEffect effect : effects) {
-            success &= this.addPotionEffect(effect);
-        }
-        return success;
+        return this.onOwnedMainThreadIfRegionThread(() -> {
+            boolean success = true;
+            for (PotionEffect effect : effects) {
+                success &= this.addPotionEffect(effect);
+            }
+            return success;
+        });
     }
 
     @Override
@@ -550,7 +609,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void removePotionEffect(PotionEffectType type) {
-        this.getHandle().removeEffect(CraftPotionEffectType.bukkitToMinecraftHolder(type), EntityPotionEffectEvent.Cause.PLUGIN);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().removeEffect(CraftPotionEffectType.bukkitToMinecraftHolder(type), EntityPotionEffectEvent.Cause.PLUGIN);
+            return null;
+        });
     }
 
     @Override
@@ -565,7 +627,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     // Paper start - LivingEntity#clearActivePotionEffects();
     @Override
     public boolean clearActivePotionEffects() {
-        return this.getHandle().removeAllEffects(EntityPotionEffectEvent.Cause.PLUGIN);
+        return this.onOwnedMainThreadIfRegionThread(() -> this.getHandle().removeAllEffects(EntityPotionEffectEvent.Cause.PLUGIN));
     }
     // Paper end
 
@@ -583,6 +645,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     @Override
     @SuppressWarnings("unchecked")
     public <T extends Projectile> T launchProjectile(Class<? extends T> projectile, Vector velocity, java.util.function.Consumer<? super T> function) {
+        return this.onOwnedMainThreadIfRegionThread(() -> this.launchProjectileUnlocked(projectile, velocity, function));
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Projectile> T launchProjectileUnlocked(Class<? extends T> projectile, Vector velocity, java.util.function.Consumer<? super T> function) {
         // Paper end - launchProjectile consumer
         Preconditions.checkState(!this.getHandle().generation, "Cannot launch projectile during world generation");
 
@@ -736,9 +803,12 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setRemoveWhenFarAway(boolean remove) {
-        if (this.getHandle() instanceof Mob) {
-            ((Mob) this.getHandle()).setPersistenceRequired(!remove);
-        }
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            if (this.getHandle() instanceof Mob) {
+                ((Mob) this.getHandle()).setPersistenceRequired(!remove);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -748,11 +818,14 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setCanPickupItems(boolean pickup) {
-        if (this.getHandle() instanceof Mob) {
-            ((Mob) this.getHandle()).setCanPickUpLoot(pickup);
-        } else {
-            this.getHandle().bukkitPickUpLoot = pickup;
-        }
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            if (this.getHandle() instanceof Mob) {
+                ((Mob) this.getHandle()).setCanPickUpLoot(pickup);
+            } else {
+                this.getHandle().bukkitPickUpLoot = pickup;
+            }
+            return null;
+        });
     }
 
     @Override
@@ -795,7 +868,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setGliding(boolean gliding) {
-        this.getHandle().setSharedFlag(7, gliding);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setSharedFlag(7, gliding);
+            return null;
+        });
     }
 
     @Override
@@ -805,7 +881,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setSwimming(boolean swimming) {
-        this.getHandle().setSwimming(swimming);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setSwimming(swimming);
+            return null;
+        });
     }
 
     @Override
@@ -815,7 +894,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setRiptiding(boolean riptiding) {
-        getHandle().setLivingEntityFlag(net.minecraft.world.entity.LivingEntity.LIVING_ENTITY_FLAG_SPIN_ATTACK, riptiding);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setLivingEntityFlag(net.minecraft.world.entity.LivingEntity.LIVING_ENTITY_FLAG_SPIN_ATTACK, riptiding);
+            return null;
+        });
     }
 
     @Override
@@ -838,15 +920,21 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     // Paper start - living entity allow attribute registration
     @Override
     public void registerAttribute(Attribute attribute) {
-        getHandle().craftAttributes.registerAttribute(attribute);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().craftAttributes.registerAttribute(attribute);
+            return null;
+        });
     }
     // Paper end - living entity allow attribute registration
 
     @Override
     public void setAI(boolean ai) {
-        if (this.getHandle() instanceof Mob) {
-            ((Mob) this.getHandle()).setNoAi(!ai);
-        }
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            if (this.getHandle() instanceof Mob) {
+                ((Mob) this.getHandle()).setNoAi(!ai);
+            }
+            return null;
+        });
     }
 
     @Override
@@ -856,47 +944,60 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void attack(Entity target) {
-        Preconditions.checkArgument(target != null, "target == null");
-        Preconditions.checkState(!this.getHandle().generation, "Cannot attack during world generation");
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(target != null, "target == null");
+            Preconditions.checkState(!this.getHandle().generation, "Cannot attack during world generation");
 
-        if (this.getHandle() instanceof net.minecraft.world.entity.player.Player) {
-            ((net.minecraft.world.entity.player.Player) this.getHandle()).attack(((CraftEntity) target).getHandle());
-        } else {
-            this.getHandle().doHurtTarget(((CraftEntity) target).getHandle());
-        }
+            if (this.getHandle() instanceof net.minecraft.world.entity.player.Player) {
+                ((net.minecraft.world.entity.player.Player) this.getHandle()).attack(((CraftEntity) target).getHandle());
+            } else {
+                this.getHandle().doHurtTarget(((CraftEntity) target).getHandle());
+            }
+            return null;
+        });
     }
 
     @Override
     public void swingMainHand() {
-        Preconditions.checkState(!this.getHandle().generation, "Cannot swing hand during world generation");
-
-        this.getHandle().swing(InteractionHand.MAIN_HAND, true);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkState(!this.getHandle().generation, "Cannot swing hand during world generation");
+            this.getHandle().swing(InteractionHand.MAIN_HAND, true);
+            return null;
+        });
     }
 
     @Override
     public void swingOffHand() {
-        Preconditions.checkState(!this.getHandle().generation, "Cannot swing hand during world generation");
-
-        this.getHandle().swing(InteractionHand.OFF_HAND, true);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkState(!this.getHandle().generation, "Cannot swing hand during world generation");
+            this.getHandle().swing(InteractionHand.OFF_HAND, true);
+            return null;
+        });
     }
 
     @Override
     public void playHurtAnimation(float yaw) {
-        if (this.getHandle().level() instanceof ServerLevel world) {
-            /*
-             * Vanilla degrees state that 0 = left, 90 = front, 180 = right, and 270 = behind.
-             * This makes no sense. We'll add 90 to it so that 0 = front, clockwise from there.
-             */
-            float actualYaw = yaw + 90;
-            ClientboundHurtAnimationPacket packet = new ClientboundHurtAnimationPacket(this.getEntityId(), actualYaw);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            if (this.getHandle().level() instanceof ServerLevel world) {
+                /*
+                 * Vanilla degrees state that 0 = left, 90 = front, 180 = right, and 270 = behind.
+                 * This makes no sense. We'll add 90 to it so that 0 = front, clockwise from there.
+                 */
+                float actualYaw = yaw + 90;
+                ClientboundHurtAnimationPacket packet = new ClientboundHurtAnimationPacket(this.getEntityId(), actualYaw);
 
-            world.getChunkSource().broadcastAndSend(this.getHandle(), packet);
-        }
+                world.getChunkSource().broadcastAndSend(this.getHandle(), packet);
+            }
+            return null;
+        });
     }
 
     @Override
     public void setCollidable(boolean collidable) {
-        this.getHandle().collides = collidable;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().collides = collidable;
+            return null;
+        });
     }
 
     @Override
@@ -916,7 +1017,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public <T> void setMemory(MemoryKey<T> memoryKey, T t) {
-        this.getHandle().getBrain().setMemory(CraftMemoryKey.bukkitToMinecraft(memoryKey), CraftMemoryMapper.toNms(t));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().getBrain().setMemory(CraftMemoryKey.bukkitToMinecraft(memoryKey), CraftMemoryMapper.toNms(t));
+            return null;
+        });
     }
 
     @Override
@@ -1001,7 +1105,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setArrowsStuck(final int arrows) {
-        this.getHandle().setArrowCount(arrows);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setArrowCount(arrows);
+            return null;
+        });
     }
 
     @Override
@@ -1011,24 +1118,33 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setShieldBlockingDelay(int delay) {
-        getHandle().setShieldBlockingDelay(delay);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setShieldBlockingDelay(delay);
+            return null;
+        });
     }
     // Paper end
 
     // Paper start - active item API
     @Override
     public void startUsingItem(org.bukkit.inventory.EquipmentSlot hand) {
-        Preconditions.checkArgument(hand != null, "hand must not be null");
-        switch (hand) {
-            case HAND -> getHandle().startUsingItem(InteractionHand.MAIN_HAND);
-            case OFF_HAND -> getHandle().startUsingItem(InteractionHand.OFF_HAND);
-            default -> throw new IllegalArgumentException("hand may only be HAND or OFF_HAND");
-        }
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(hand != null, "hand must not be null");
+            switch (hand) {
+                case HAND -> getHandle().startUsingItem(InteractionHand.MAIN_HAND);
+                case OFF_HAND -> getHandle().startUsingItem(InteractionHand.OFF_HAND);
+                default -> throw new IllegalArgumentException("hand may only be HAND or OFF_HAND");
+            }
+            return null;
+        });
     }
 
     @Override
     public void completeUsingActiveItem() {
-        getHandle().completeUsingItem();
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().completeUsingItem();
+            return null;
+        });
     }
 
     @Override
@@ -1039,7 +1155,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     // Paper start
     @Override
     public void clearActiveItem() {
-        getHandle().stopUsingItem();
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().stopUsingItem();
+            return null;
+        });
     }
     // Paper end
 
@@ -1050,9 +1169,12 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setActiveItemRemainingTime(final int ticks) {
-        Preconditions.checkArgument(ticks >= 0, "ticks must be >= 0");
-        Preconditions.checkArgument(ticks <= this.getHandle().getUseItem().getUseDuration(this.getHandle()), "ticks must be <= item use duration");
-        this.getHandle().useItemRemaining = ticks;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(ticks >= 0, "ticks must be >= 0");
+            Preconditions.checkArgument(ticks <= this.getHandle().getUseItem().getUseDuration(this.getHandle()), "ticks must be <= item use duration");
+            this.getHandle().useItemRemaining = ticks;
+            return null;
+        });
     }
 
     @Override
@@ -1079,18 +1201,24 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setJumping(boolean jumping) {
-        getHandle().setJumping(jumping);
-        if (jumping && getHandle() instanceof Mob) {
-            // this is needed to actually make a mob jump
-            ((Mob) getHandle()).getJumpControl().jump();
-        }
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            getHandle().setJumping(jumping);
+            if (jumping && getHandle() instanceof Mob) {
+                // this is needed to actually make a mob jump
+                ((Mob) getHandle()).getJumpControl().jump();
+            }
+            return null;
+        });
     }
     // Paper end - entity jump API
 
     // Paper start - pickup animation API
     @Override
     public void playPickupItemAnimation(final org.bukkit.entity.Item item, final int quantity) {
-        this.getHandle().take(((CraftItem) item).getHandle(), quantity);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().take(((CraftItem) item).getHandle(), quantity);
+            return null;
+        });
     }
     // Paper end - pickup animation API
 
@@ -1116,14 +1244,20 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     // Paper start - knockback API
     @Override
     public void knockback(final double strength, final double directionX, final double directionZ) {
-        Preconditions.checkArgument(strength > 0, "Knockback strength must be > 0");
-        this.getHandle().knockback(strength, directionX, directionZ);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(strength > 0, "Knockback strength must be > 0");
+            this.getHandle().knockback(strength, directionX, directionZ);
+            return null;
+        });
     };
     // Paper end - knockback API
 
     // Paper start - ItemStack damage API
     public void broadcastSlotBreak(final org.bukkit.inventory.EquipmentSlot slot) {
-        this.getHandle().level().broadcastEntityEvent(this.getHandle(), net.minecraft.world.entity.LivingEntity.entityEventForEquipmentBreak(org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot)));
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().level().broadcastEntityEvent(this.getHandle(), net.minecraft.world.entity.LivingEntity.entityEventForEquipmentBreak(org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot)));
+            return null;
+        });
     }
 
     @Override
@@ -1140,6 +1274,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public ItemStack damageItemStack(ItemStack stack, final int amount) {
+        return this.onOwnedMainThreadIfRegionThread(() -> this.damageItemStackUnlocked(stack, amount));
+    }
+
+    private ItemStack damageItemStackUnlocked(ItemStack stack, final int amount) {
         final net.minecraft.world.item.ItemStack nmsStack;
         if (stack instanceof final CraftItemStack craftItemStack) {
             if (craftItemStack.handle == null || craftItemStack.handle.isEmpty()) {
@@ -1156,8 +1294,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void damageItemStack(final org.bukkit.inventory.EquipmentSlot slot, final int amount) {
-        final net.minecraft.world.entity.EquipmentSlot nmsSlot = org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot);
-        this.damageItemStack0(this.getHandle().getItemBySlot(nmsSlot), amount, nmsSlot);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            final net.minecraft.world.entity.EquipmentSlot nmsSlot = org.bukkit.craftbukkit.CraftEquipmentSlot.getNMS(slot);
+            this.damageItemStack0(this.getHandle().getItemBySlot(nmsSlot), amount, nmsSlot);
+            return null;
+        });
     }
 
     private void damageItemStack0(final net.minecraft.world.item.ItemStack nmsStack, final int amount, final net.minecraft.world.entity.EquipmentSlot slot) {
@@ -1173,8 +1314,11 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setFrictionState(@org.jetbrains.annotations.NotNull net.kyori.adventure.util.TriState state) {
-        java.util.Objects.requireNonNull(state, "state may not be null");
-        this.getHandle().frictionState = state;
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            java.util.Objects.requireNonNull(state, "state may not be null");
+            this.getHandle().frictionState = state;
+            return null;
+        });
     }
     // Paper end - friction API
 
@@ -1186,7 +1330,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setBodyYaw(final float bodyYaw) {
-        this.getHandle().setYBodyRot(bodyYaw);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setYBodyRot(bodyYaw);
+            return null;
+        });
     }
     // Paper end - body yaw API
 
@@ -1198,7 +1345,10 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public void setShouldBurnInDay(final boolean shouldBurnInDay) {
-        this.getHandle().setShouldBurnInDay(shouldBurnInDay);
+        this.onOwnedMainThreadIfRegionThread(() -> {
+            this.getHandle().setShouldBurnInDay(shouldBurnInDay);
+            return null;
+        });
     }
     // Purpur end - API for any mob to burn daylight
 }

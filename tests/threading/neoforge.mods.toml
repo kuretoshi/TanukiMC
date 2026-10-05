@@ -1,0 +1,8 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+
+[[mods]]
+modId="youer_phase_probe"
+version="1.0"
+displayName="Youer Threading Phase Probe"

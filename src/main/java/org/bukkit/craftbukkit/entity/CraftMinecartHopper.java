@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.destroystokyo.paper.loottable.PaperLootableEntityInventory;
+import com.mohistmc.youer.threading.ThreadedServer;
 import net.minecraft.world.entity.vehicle.MinecartHopper;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
@@ -32,7 +33,10 @@ public final class CraftMinecartHopper extends CraftMinecartContainer implements
 
     @Override
     public void setEnabled(boolean enabled) {
-        ((MinecartHopper) this.getHandle()).setEnabled(enabled);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            ((MinecartHopper) this.getHandle()).setEnabled(enabled);
+            return null;
+        });
     }
     // Paper start
     @Override

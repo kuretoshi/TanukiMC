@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import com.google.common.base.Preconditions;
 import net.minecraft.server.ServerTickRateManager;
 import org.bukkit.ServerTickManager;
@@ -41,43 +42,49 @@ final class CraftServerTickManager implements ServerTickManager {
 
     @Override
     public void setTickRate(final float tickRate) {
-        Preconditions.checkArgument(tickRate >= 1.0F && tickRate <= 10_000.0F, "The given tick rate must not be less than 1.0 or greater than 10,000.0");
-        this.manager.setTickRate(tickRate);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            Preconditions.checkArgument(tickRate >= 1.0F && tickRate <= 10_000.0F, "The given tick rate must not be less than 1.0 or greater than 10,000.0");
+            this.manager.setTickRate(tickRate);
+            return null;
+        });
     }
 
     @Override
     public void setFrozen(final boolean frozen) {
-        if (frozen) {
-            if (this.manager.isSprinting()) {
-                this.manager.stopSprinting();
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            if (frozen) {
+                if (this.manager.isSprinting()) {
+                    this.manager.stopSprinting();
+                }
+
+                if (this.manager.isSteppingForward()) {
+                    this.manager.stopStepping();
+                }
             }
 
-            if (this.manager.isSteppingForward()) {
-                this.manager.stopStepping();
-            }
-        }
-
-        this.manager.setFrozen(frozen);
+            this.manager.setFrozen(frozen);
+            return null;
+        });
     }
 
     @Override
     public boolean stepGameIfFrozen(final int ticks) {
-        return this.manager.stepGameIfPaused(ticks);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> this.manager.stepGameIfPaused(ticks));
     }
 
     @Override
     public boolean stopStepping() {
-        return this.manager.stopStepping();
+        return ThreadedServer.onMainThreadIfRegionThread(() -> this.manager.stopStepping());
     }
 
     @Override
     public boolean requestGameToSprint(final int ticks) {
-        return this.manager.requestGameToSprint(ticks);
+        return ThreadedServer.onMainThreadIfRegionThread(() -> this.manager.requestGameToSprint(ticks));
     }
 
     @Override
     public boolean stopSprinting() {
-        return this.manager.stopSprinting();
+        return ThreadedServer.onMainThreadIfRegionThread(() -> this.manager.stopSprinting());
     }
 
     @Override

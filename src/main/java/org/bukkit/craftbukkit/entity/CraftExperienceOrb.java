@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.ExperienceOrb;
 
@@ -15,7 +16,10 @@ public class CraftExperienceOrb extends CraftEntity implements ExperienceOrb {
 
     @Override
     public void setExperience(int value) {
-        this.getHandle().value = value;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().value = value;
+            return null;
+        });
     }
 
     // Paper start - expose count
@@ -26,7 +30,10 @@ public class CraftExperienceOrb extends CraftEntity implements ExperienceOrb {
 
     @Override
     public void setCount(final int count) {
-        this.getHandle().count = count;
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().count = count;
+            return null;
+        });
     }
     // Paper end
 

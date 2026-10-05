@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.threading.ThreadedServer;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Panda;
 
@@ -27,7 +28,10 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setMainGene(Gene gene) {
-        this.getHandle().setMainGene(CraftPanda.toNms(gene));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setMainGene(CraftPanda.toNms(gene));
+            return null;
+        });
     }
 
     @Override
@@ -37,13 +41,19 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setHiddenGene(Gene gene) {
-        this.getHandle().setHiddenGene(CraftPanda.toNms(gene));
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setHiddenGene(CraftPanda.toNms(gene));
+            return null;
+        });
     }
 
     // Paper start - Panda API
     @Override
     public void setSneezeTicks(int ticks) {
-        this.getHandle().setSneezeCounter(ticks);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setSneezeCounter(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -53,7 +63,10 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setEatingTicks(int ticks) {
-        this.getHandle().setEatCounter(ticks);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setEatCounter(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -63,7 +76,10 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setUnhappyTicks(int ticks) {
-        this.getHandle().setUnhappyCounter(ticks);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setUnhappyCounter(ticks);
+            return null;
+        });
     }
 
     @Override
@@ -79,7 +95,10 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setRolling(boolean flag) {
-        this.getHandle().roll(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().roll(flag);
+            return null;
+        });
     }
 
     @Override
@@ -89,7 +108,10 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setSneezing(boolean flag) {
-        this.getHandle().sneeze(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().sneeze(flag);
+            return null;
+        });
     }
 
     @Override
@@ -99,7 +121,10 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setSitting(boolean flag) {
-        this.getHandle().sit(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().sit(flag);
+            return null;
+        });
     }
 
     @Override
@@ -109,7 +134,10 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setOnBack(boolean flag) {
-        this.getHandle().setOnBack(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().setOnBack(flag);
+            return null;
+        });
     }
 
     @Override
@@ -119,7 +147,10 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public void setEating(boolean flag) {
-        this.getHandle().eat(flag);
+        ThreadedServer.onMainThreadIfRegionThread(() -> {
+            this.getHandle().eat(flag);
+            return null;
+        });
     }
 
     @Override
